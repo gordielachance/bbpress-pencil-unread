@@ -4,8 +4,8 @@
  * Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
  * Description: Display which bbPress forums/topics have already been read by the user.
  * Author: G.Breant
- * Version: 1.0.2
- * Author URI: http://sandbox.cargoculte.be/
+ * Version: 1.0.3
+ * Author URI: http://sandbox.pencil2d.org/
  * License: GPL2+
  * Text Domain: bbppu
  * Domain Path: /languages/
@@ -19,7 +19,7 @@ class bbP_Pencil_Unread {
 	/**
 	 * @public string plugin version
 	 */
-	public $version = '1.0.2';
+	public $version = '1.0.3';
 
 	/**
 	 * @public string plugin DB version
@@ -106,7 +106,8 @@ class bbP_Pencil_Unread {
 	}
         
 	function includes(){
-            require( $this->plugin_dir . 'bbppu-template.php'   );
+            require( $this->plugin_dir . 'bbppu-template.php');
+            require( $this->plugin_dir . 'bbppu-ajax.php');
             
             if (is_admin()){
             }
@@ -114,12 +115,14 @@ class bbP_Pencil_Unread {
 	
 	function setup_actions(){
             
-            //localization (nothing to localize yet, so disable it)
-            //add_action('init', array($this, 'load_plugin_textdomain'));
+            //localization
+            add_action('init', array($this, 'load_plugin_textdomain'));
+            
             //upgrade
             add_action( 'plugins_loaded', array($this, 'upgrade'));
             
-            add_action( 'wp_enqueue_scripts', array( $this, 'scripts_styles' ) );//scripts + styles
+            add_action('init', array($this, 'register_scripts_styles'));
+            add_action( 'wp_enqueue_scripts', array($this, 'scripts_styles'));
             add_action("init",array(&$this,"logged_in_user_actions"));
 
 	}
@@ -159,8 +162,6 @@ class bbP_Pencil_Unread {
             add_action('bbppu-single_forum_display',array(&$this,'update_forums_visits_for_user'));
             
             add_filter('bbp_get_forum_class', array(&$this,"forum_status_class"),10,2);
-            //add_action("bbp_template_after_topics_loop", array(&$this,"forum_mark_read_link"));
-            
             
             //TOPICS
             add_action("wp", array(&$this,"single_topic_display"));
@@ -184,12 +185,81 @@ class bbP_Pencil_Unread {
             //saving
             add_action( 'bbp_new_reply_pre_extras',array(&$this,"forum_was_read_before_new_reply"),10,2);
             add_action( 'bbp_new_reply',array(&$this,"new_reply"),10,5 );
+            
+            //mark as read
+            add_action('bbp_template_after_pagination_loop', array(&$this,"mark_as_read_single_forum_link"));
+            //add_action('bbp_template_before_forums_loop', array(&$this,"mark_as_read_forums_link"));
+            add_action("wp", array(&$this,"check_link_mark_as_read"));
+
+        }
+        
+        function register_scripts_styles(){
+            wp_register_style($this->prefix, $this->plugin_url . '_inc/bbppu.css',false,$this->version);
+            wp_register_script($this->prefix, $this->plugin_url . '_inc/js/bbppu.js',array('jquery'),$this->version);
 
         }
 
         function scripts_styles(){
-            wp_register_style( $this->prefix.'-style', $this->plugin_url . 'bbppu.css' );
-            wp_enqueue_style( $this->prefix.'-style' );
+		
+                //SCRIPTS
+            
+		wp_enqueue_script($this->prefix);
+		
+		//localize vars
+                $localize_vars=array();
+                $localize_vars['marked_as_read']=__('Marked as read','bbppu');
+                
+		
+		wp_localize_script($this->prefix,$this->prefix.'L10n', $localize_vars);
+		
+		//STYLES
+		wp_enqueue_style($this->prefix);
+
+        }
+
+        function mark_as_read_single_forum_link($forum_id=false){
+
+            if(!is_single()) return false;
+            if(get_post_type( $post->ID )!=bbp_get_forum_post_type()) return false;
+            
+            $url = get_permalink();
+            $forum_id = bbp_get_forum_id($forum_id);
+            $nonce_action = 'bbpu_mark_read_single_forum_'.$forum_id;
+            $nonce = wp_create_nonce($nonce_action);
+            $url = add_query_arg(array('action'=>'bbpu_mark_read'),$url);
+            $url = wp_nonce_url( $url,$nonce_action);
+            
+            
+            ?>
+            <div class="bbppu-mark-as-read">
+                <a href="<?php echo $url;?>" data-nonce="<?php echo $nonce;?>" data-forum-id="<?php echo $forum_id;?>"><?php _e('Mark all as read','bbppu');?></a>
+            </div>
+            <?php
+        }
+        
+        // processes the mark as read action
+        public function check_link_mark_as_read() {
+                global $post;
+                if( !isset( $_GET['action'] ) || $_GET['action'] != 'bbpu_mark_read' )return false;
+
+                if(is_single() && (get_post_type( $post->ID )==bbp_get_forum_post_type())){ //single forum
+                    
+                    $forum_id = bbp_get_forum_id($post->ID);
+                    
+                    if( ! wp_verify_nonce( $_GET['_wpnonce'], 'bbpu_mark_read_single_forum_'.$forum_id ) ) return false;
+                    
+                    self::mark_single_forum_as_read($forum_id);
+                    
+                }
+        }
+        
+        public function mark_single_forum_as_read($forum_id) {
+            $user_id = get_current_user_id();
+            if(!$user_id) return false;
+            
+            $meta_key_name = $this->prefix.'_marked_forum_'.$forum_id;
+            $time = current_time('timestamp');
+            return update_user_meta($user_id, $meta_key_name, $time );
         }
         
         function single_forum_display(){
@@ -445,26 +515,46 @@ class bbP_Pencil_Unread {
         
         function has_user_read_topic($topic_id,$user_id=false){ 
             
-            //validate topic
-            $topic_id = bbp_get_topic_id($topic_id);
-            if (get_post_type( $topic_id )!=bbp_get_topic_post_type()) return false;
+            $has_read = false;
             
             //check user
             if(!$user_id) $user_id = get_current_user_id();
             if (!get_userdata( $user_id )) return false;
-
-            $meta_key_name = $this->prefix.'_read_by';
             
-            //if the key was never set, considerate as read
-            if (!metadata_exists('post',$topic_id,$meta_key_name)) return true;
+            //validate topic
+            $topic_id = bbp_get_topic_id($topic_id);
+            if (get_post_type( $topic_id )!=bbp_get_topic_post_type()) return false;
             
-            $user_ids = get_post_meta($topic_id,$meta_key_name,true);
+            $forum_id = bbp_get_topic_forum_id($topic_id);
+            
+            //FORUM MARKED AS READ
+            $forum_marked_key_name = $this->prefix.'_marked_forum_'.$forum_id;
+            $forum_time_marked = get_user_meta($user_id, $forum_marked_key_name, true );
 
-            return in_array($user_id,(array)$user_ids);
+            if($forum_time_marked){
+                $topic_last_active_time = bbp_convert_date(get_post_meta( $topic_id, '_bbp_last_active_time', true ));
+                $has_read = ($topic_last_active_time <= $forum_time_marked);
+            }
+            
+            if (!$has_read){
+                //TOPIC READ CHECK
+                $meta_key_name = $this->prefix.'_read_by';
+
+                //if the key was never set, considerate as read
+                if (!metadata_exists('post',$topic_id,$meta_key_name)) return true;
+
+                $user_ids = get_post_meta($topic_id,$meta_key_name,true);
+
+                $has_read = in_array($user_id,(array)$user_ids);
+            }
+            
+            return apply_filters('bbppu_user_has_read_topic',$has_read,$topic_id,$user_id);
         } 
 
         
         function has_user_read_forum($forum_id,$user_id=false){
+            
+            $has_read = false;
             
             //validate forum
             $forum_id = bbp_get_forum_id($forum_id);
@@ -485,37 +575,16 @@ class bbP_Pencil_Unread {
             
             $forum_last_active_time = bbp_convert_date(get_post_meta( $forum_id, '_bbp_last_active_time', true ));
 
-            return ($forum_last_active_time <= $user_last_visit);
+            $has_read = ($forum_last_active_time <= $user_last_visit);
+            
+            return apply_filters('bbppu_user_has_read_forum',$has_read,$forum_id,$user_id);
         }
 
         function classes_attr($classes=false){
             if (!$classes) return false;
             return ' class="'.implode(" ",(array)$classes).'"';
             
-        }
-        
-        function forum_mark_read_link(){
-                global $wp,$post;
-                
-                $action_url = home_url( $wp->request );
-                $action_name = 'mark_forum_read';
-                $action_url = add_query_arg($this->action_varname,$action_name);
-                $action_url = wp_nonce_url( $action_url, $action_name );
-                
-                $text = __('Mark all forum topics as read',$this->prefix);
-                
-                $classes[]=$this->prefix;
-                $classes[]='action-link';
-                $classes[]=$action_name;
-                
-                $classes_str = $this->classes_attr($classes);
-
-                
-                ?>
-                <a<?php echo $classes_str;?> title="<?php echo $text;?>" href="<?php echo $action_url;?>"><?php echo $text;?></a>
-                <?php
-        }
-        
+        }        
 }
 
 

@@ -16,6 +16,8 @@ bbPress Pencil Unread display which bbPress forums/topics have already been read
 *   For **forums**, it checks if the user has visited the forum since it was last active.
 *   For **topics**, it checks if the user opened the topic since it was last active.
 
+It also allows to set all topics of a forum as read.
+
 = Contributors =
 [Contributors are listed
 here](https://github.com/gordielachance/bbpress-pencil-unread/contributors)
@@ -57,6 +59,9 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 1. Style of the read / non-read forums
 
 == Changelog ==
+= 1.0.3 =
+* Added link "mark as read" for forums
+* Added filter 'bbppu_user_has_read_forum' on has_user_read_forum() and 'bbppu_user_has_read_topic' on has_user_read_topic()
 = 1.0.2 =
 * Timezone bug fix (thanks to Ruben!)
 = 1.0.1 =
