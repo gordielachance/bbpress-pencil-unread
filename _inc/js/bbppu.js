@@ -18,21 +18,16 @@ jQuery(document).ready(function($){
             type: "post",url: ajaxurl,data:ajax_data,
             beforeSend: function() {
                 link.addClass('loading');
-                //input.attr('disabled', 'disabled');
-                //input.val(bbptlL10n.loading);
             },
             success: function(result){
                 if(result){
                     block.html(bbppuL10n.marked_as_read);
                     var topics = $('.bbp-body .hentry.topic');
-                    console.log(topics);
                     topics.removeClass('bbppu-unread');
                     topics.addClass('bbppu-read');
                 }
             },
             error: function (xhr, ajaxOptions, thrownError) {
-                //input.bpptl_geolocate_message(bbptlL10n.geo_error);
-                //console.log('bpptl_geolocate error');
                 console.log(xhr.status);
                 console.log(thrownError);
             },
