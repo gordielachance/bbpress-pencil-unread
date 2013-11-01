@@ -2,7 +2,7 @@
 Contributors: grosbouff 
 Tags: bbpress,unread,topics,forums,buddypress
 Requires at least: Wordpress 3, bbPress 2
-Tested up to: Wordpress 3.5.2, bbPress 2.2.4
+Tested up to: Wordpress 3.7.1, bbPress 2.4.1
 Stable tag: trunk
 License:GPLv2 or later
 Donate link:http://bit.ly/gbreant
@@ -59,6 +59,9 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 1. Style of the read / non-read forums
 
 == Changelog ==
+= 1.0.4 =
+* Now saving the user's first visit (user meta key "bbppu_first_visit") to define older content as "read".
+* In 'setup_actions()', replaced wordpress hooks by bbpress hooks (to avoid plugin to crash while bbPress is not enabled)
 = 1.0.3 =
 * Added link "mark as read" for forums
 * Added filter 'bbppu_user_has_read_forum' on has_user_read_forum() and 'bbppu_user_has_read_topic' on has_user_read_topic()
