@@ -59,6 +59,11 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 1. Style of the read / non-read forums
 
 == Changelog ==
+= 1.0.5 =
+* Compatible with BuddyPress Groups Forums !
+* Backend integration (new_topic_backend,new_reply_backend)
+* Better firing sequence
+* Fixed styles for "mark as read" link
 = 1.0.4 =
 * Now saving the user's first visit (user meta key "bbppu_first_visit") to define older content as "read".
 * In 'setup_actions()', replaced wordpress hooks by bbpress hooks (to avoid plugin to crash while bbPress is not enabled)
