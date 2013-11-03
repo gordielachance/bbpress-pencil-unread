@@ -60,6 +60,8 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 
 == Changelog ==
 = 1.0.5 =
+* Fixed bugs from 1.0.5
+= 1.0.5 =
 * Compatible with BuddyPress Groups Forums !
 * Backend integration (new_topic_backend,new_reply_backend)
 * Better firing sequence

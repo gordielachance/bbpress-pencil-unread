@@ -4,7 +4,7 @@
  * Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
  * Description: Display which bbPress forums/topics have already been read by the user.
  * Author: G.Breant
- * Version: 1.0.5
+ * Version: 1.0.6
  * Author URI: http://sandbox.pencil2d.org/
  * License: GPL2+
  * Text Domain: bbppu
@@ -19,7 +19,7 @@ class bbP_Pencil_Unread {
 	/**
 	 * @public string plugin version
 	 */
-	public $version = '1.0.5';
+	public $version = '1.0.6';
 
 	/**
 	 * @public string plugin DB version
@@ -64,7 +64,7 @@ class bbP_Pencil_Unread {
         public $forum_was_read_before_new_post = false;
         
 	/**
-	 * @var The one true bbPress Unread Posts Instance
+	 * @var The one true Instance
 	 */
 	private static $instance;
 
@@ -203,8 +203,6 @@ class bbP_Pencil_Unread {
             $first_visit = self::get_user_first_visit($user_id);
             if($first_visit) return false;
             
-            print_r("save_user_first_visit");
-            
             $time = current_time('timestamp');
             update_user_meta($user_id,$this->prefix.'_first_visit', $time );
         }
@@ -240,8 +238,6 @@ class bbP_Pencil_Unread {
             //validate forum
             $forum_id = bbp_get_forum_id($forum_id);
             if (get_post_type( $forum_id )!=bbp_get_forum_post_type()) return false;
-            
-            print_r("update_forum_visit_for_user:".$forum_id);
             
             $user_meta_key = $this->prefix.'_forums_visits';
 
@@ -634,26 +630,15 @@ class bbP_Pencil_Unread {
 
 
 /**
- * The main function responsible for returning the one true bbPress Unread Posts Instance
+ * The main function responsible for returning the one true Instance
  * to functions everywhere.
  *
  * Use this function like you would a global variable, except without needing
  * to declare the global.
  *
- * Example: <?php $pencil_bbp_unread = pencil_bbp_unread(); ?>
+ * Example: $pencil_bbp_unread = pencil_bbp_unread();
  *
- * @return The one true bbPress Unread Posts Instance
- */
-
-function bbp_pencil_unread() {
-	return bbP_Pencil_Unread::instance();
-}
-
-bbp_pencil_unread();
-
-?>; ?>
- *
- * @return The one true bbPress Unread Posts Instance
+ * @return The one true Instance
  */
 
 function bbp_pencil_unread() {
