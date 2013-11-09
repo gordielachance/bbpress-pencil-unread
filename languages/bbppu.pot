@@ -1,0 +1,41 @@
+# Copyright (C) 2013 bbPress Pencil Unread
+# This file is distributed under the same license as the bbPress Pencil Unread package.
+msgid ""
+msgstr ""
+"Project-Id-Version: bbPress Pencil Unread 1.0.9\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/bbpress-pencil-unread\n"
+"POT-Creation-Date: 2013-11-05 15:16:02+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2013-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+
+#: bbpress-pencil-unread.php:248
+msgid "Marked as read"
+msgstr ""
+
+#: bbpress-pencil-unread.php:268
+msgid "Mark all as read"
+msgstr ""
+
+#. Plugin Name of the plugin/theme
+msgid "bbPress Pencil Unread"
+msgstr ""
+
+#. Plugin URI of the plugin/theme
+msgid "http://wordpress.org/extend/plugins/bbpress-pencil-unread"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid "Display which bbPress forums/topics have already been read by the user."
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "G.Breant"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "http://sandbox.pencil2d.org/"
+msgstr ""
