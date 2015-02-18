@@ -4,7 +4,7 @@ Plugin Name: bbPress Pencil Unread
 Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
 Description: Display which bbPress forums/topics have already been read by the user.
 Author: G.Breant
-Version: 1.0.9
+Version: 1.1.0
 Author URI: http://sandbox.pencil2d.org/
 License: GPL2+
 Text Domain: bbppu
@@ -17,7 +17,7 @@ class bbP_Pencil_Unread {
         /**
 	 * @public string plugin version
 	 */
-	public $version = '1.0.9';
+	public $version = '1.1.0';
         
 	/**
 	 * @public string plugin DB version
@@ -36,11 +36,6 @@ class bbP_Pencil_Unread {
 	 * @public string Absolute path to the plugin directory
 	 */
 	public $plugin_dir = '';
-        
-	/**
-	 * @public string Prefix for the plugin
-	 */
-	public $prefix = '';
         
 	/**
 	 * @public name of the var used for plugin's actions
@@ -93,8 +88,7 @@ class bbP_Pencil_Unread {
 		$this->basename   = plugin_basename( $this->file );
 		$this->plugin_dir = plugin_dir_path( $this->file );
 		$this->plugin_url = plugin_dir_url ( $this->file );
-                $this->prefix = 'bbppu';
-                $this->action_varname = $this->prefix.'_action';
+                $this->action_varname = 'bbppu_action';
 	}
         
 	function includes(){
@@ -120,13 +114,13 @@ class bbP_Pencil_Unread {
 	}
         
 	public function load_plugin_textdomain(){
-		load_plugin_textdomain($this->prefix, FALSE, $this->plugin_dir.'languages/');
+		load_plugin_textdomain('bbppu', FALSE, $this->plugin_dir.'languages/');
 	}
         
 	function upgrade(){
 		global $wpdb;
 		
-		$version_db_key = $this->prefix.'-db-version';
+		$version_db_key = 'bbppu-db-version';
 		
 		$current_version = get_option($version_db_key);
 		
@@ -144,11 +138,58 @@ class bbP_Pencil_Unread {
 		update_option($version_db_key, $this->db_version );
 	}
         
+        //filter list forums to add classes to the subforums links.
+        //this is a really nasty hack. 
+        //Should be fixed when bbpress fix this ticket :
+        //https://bbpress.trac.wordpress.org/ticket/2759#ticket
+        
+        function list_forums_class($output,$args){
+            
+            //remove filter to avoid infinite loop
+            remove_filter( 'bbp_list_forums', array(&$this,"list_forums_class"), 10 );
+            
+            //get sub forums
+            $sub_forums = bbp_forum_get_subforums( $args['forum_id'] );
+            $sub_forums_links = array();
+            foreach($sub_forums as $sub_forum){
+                $sub_forums_links[$sub_forum->ID] = bbp_get_forum_permalink( $sub_forum->ID );
+            }
+            
+            //get forums list nodes
+            $dom = new DOMDocument;
+            $dom->loadHTML($output);
+            $finder = new DomXPath($dom);
+            $classname="bbp-forum-link";
+            $forum_link_nodes = $finder->query("//*[contains(@class, '$classname')]");
+            
+            foreach ($forum_link_nodes as $forum_link_node) {
+                $forum_link = $forum_link_node->getAttribute('href');
+                $forum_id = array_search($forum_link, $sub_forums_links);
+                if ($forum_id){
+                    $forum_read = $this->has_user_read($forum_id);
+                    $classes = explode(' ',$forum_link_node->getAttribute('class'));
+                    $classes = $this->post_status_class($classes,$forum_id);
+                    $forum_link_node->setAttribute("class",implode(' ',$classes));
+                }
+                
+            }
+            
+            //re-add filter
+            add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
+            
+            return $dom->saveHTML();
+            
+            
+        }
+        
 	function logged_in_user_actions(){
             if(!is_user_logged_in()) return false;
 
-            add_filter('bbp_get_forum_class', array(&$this,"forum_status_class"),10,2);
-            add_filter('bbp_get_topic_class', array(&$this,"topic_status_class"),10,2);
+            add_filter('bbp_get_forum_class', array(&$this,"post_status_class"),10,2);
+            add_filter('bbp_get_topic_class', array(&$this,"post_status_class"),10,2);
+            
+            add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
+            
 
             //save first visit (ever) time.  Older content will be tagged as "read".
             add_action('bbp_template_before_forums_loop',array(&$this,'save_user_first_visit'));
@@ -161,6 +202,7 @@ class bbP_Pencil_Unread {
 
             //single topic
             add_action('bbp_template_after_replies_loop',array(&$this,'update_current_topic_read_by'));
+            
             //saving
             add_action( 'bbp_new_topic_pre_extras',array(&$this,"forum_was_read_before_new_topic"));
             add_action( 'bbp_new_topic',array(&$this,"new_topic"),10,4 );
@@ -191,13 +233,13 @@ class bbP_Pencil_Unread {
             if($first_visit) return false;
 
             $time = current_time('timestamp');
-            update_user_meta($user_id,$this->prefix.'_first_visit', $time );
+            update_user_meta($user_id,'bbppu_first_visit', $time );
 	}
         
 		function get_user_first_visit($user_id){
                     $user_id = get_current_user_id();
                     if(!$user_id) return false;
-                    return get_user_meta($user_id,$this->prefix.'_first_visit',true);
+                    return get_user_meta($user_id,'bbppu_first_visit',true);
 		}
             
 	/**
@@ -226,7 +268,7 @@ class bbP_Pencil_Unread {
             $forum_id = bbp_get_forum_id($forum_id);
             if (get_post_type( $forum_id )!=bbp_get_forum_post_type()) return false;
 
-            $user_meta_key = $this->prefix.'_forums_visits';
+            $user_meta_key = 'bbppu_forums_visits';
             $visits = $this->get_forums_visits_for_user($user_id);
             $visits[$forum_id] = current_time('timestamp');
 
@@ -234,24 +276,24 @@ class bbP_Pencil_Unread {
 	}
         
 	function register_scripts_styles(){
-            wp_register_style($this->prefix, $this->plugin_url . '_inc/bbppu.css',false,$this->version);
-            wp_register_script($this->prefix, $this->plugin_url . '_inc/js/bbppu.js',array('jquery'),$this->version);
+            wp_register_style('bbppu', $this->plugin_url . '_inc/bbppu.css',false,$this->version);
+            wp_register_script('bbppu', $this->plugin_url . '_inc/js/bbppu.js',array('jquery'),$this->version);
 	}
 	function scripts_styles(){
 	
             //SCRIPTS
 
-            wp_enqueue_script($this->prefix);
+            wp_enqueue_script('bbppu');
 
             //localize vars
-                            $localize_vars=array();
-                            $localize_vars['marked_as_read']=__('Marked as read','bbppu');
+            $localize_vars=array();
+            $localize_vars['marked_as_read']=__('Marked as read','bbppu');
 
 
-            wp_localize_script($this->prefix,$this->prefix.'L10n', $localize_vars);
+            wp_localize_script('bbppu','bbppuL10n', $localize_vars);
 
             //STYLES
-            wp_enqueue_style($this->prefix);
+            wp_enqueue_style('bbppu');
 	}
         
 	function mark_as_read_single_forum_link($forum_id=false){
@@ -282,7 +324,7 @@ class bbP_Pencil_Unread {
 	public function mark_single_forum_as_read($forum_id) {
             $user_id = get_current_user_id();
             if(!$user_id) return false;
-            $meta_key_name = $this->prefix.'_marked_forum_'.$forum_id;
+            $meta_key_name = 'bbppu_marked_forum_'.$forum_id;
             $time = current_time('timestamp');
             return update_user_meta($user_id, $meta_key_name, $time );
 	}
@@ -396,7 +438,7 @@ class bbP_Pencil_Unread {
             //check user
             if(!$user_id) $user_id = get_current_user_id();
             if (!get_userdata( $user_id )) return false;
-            $meta_key_name = $this->prefix.'_read_by';
+            $meta_key_name = 'bbppu_read_by';
             if(!$reset){
                     $read_by_uid = get_post_meta( $topic_id, $meta_key_name, true );
             }
@@ -404,6 +446,7 @@ class bbP_Pencil_Unread {
             //remove duplicates
             $read_by_uid[]=$user_id;
             $read_by_uid = array_unique($read_by_uid);
+
             return update_post_meta( $topic_id, $meta_key_name, $read_by_uid );
 	}
 	/**
@@ -429,7 +472,7 @@ class bbP_Pencil_Unread {
             //check user
             if(!$user_id) $user_id = get_current_user_id();
             if (!get_userdata( $user_id )) return false;
-            $user_meta_key = $this->prefix.'_forums_visits';
+            $user_meta_key = 'bbppu_forums_visits';
             //if (($user_id==get_current_user_id())&&($this->cuser_forums_visits)) { //use the value already stored
                 //  $meta = $this->cuser_forums_visits;
             //}else{
@@ -444,164 +487,122 @@ class bbP_Pencil_Unread {
             $last_visit = $this->get_single_forum_visit_for_user($forum_id,$user_id);
             return $last_visit;
 	}
-	function topic_status_class($classes,$topic_id){
-
-            $is_read = $this->has_user_read_topic($topic_id);
-
+	function post_status_class($classes,$post_id){
+            
+            //TO FIX check allowed post types
+            
+            $post_type = get_post_type( $post_id );
+            $is_read = $this->has_user_read($post_id);
+            
+            $classes[]='bbppu-hentry';
+            
             if (!$is_read){
-                    $classes[]=$this->prefix.'-unread';
+                    $classes[]='bbppu-unread';
             }else{
-                    $classes[]=$this->prefix.'-read';
+                    $classes[]='bbppu-read';
             }
+            
             return $classes;
+
+
 	}
-	function forum_status_class($classes,$forum_id){
-            $is_read = $this->has_user_read_forum($forum_id);
-            if (!$is_read){
-                    $classes[]=$this->prefix.'-unread';
-            }else{
-                    $classes[]=$this->prefix.'-read';
-            }
-            return $classes;
-	}
-	
-	
-	function has_user_read_topic($topic_id,$user_id=false){ 
+        
+        function has_user_read($post_id,$user_id=false){ 
+            
             $has_read = false;
-
+            
             //check user
             if(!$user_id) $user_id = get_current_user_id();
             if (!get_userdata( $user_id )) return false;
 
-            //validate topic
-            $topic_id = bbp_get_topic_id($topic_id);
-            if (get_post_type( $topic_id )!=bbp_get_topic_post_type()) return false;
+            $post_type = get_post_type( $post_id );
+            
+            switch($post_type){
+                
+                case bbp_get_topic_post_type(): //topic
+                    
+                    $forum_id = bbp_get_topic_forum_id($post_id);
+                    $topic_last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true ));
+                    
+                    $forum_marked_key_name = 'bbppu_marked_forum_'.$forum_id;
+                    $forum_time_marked = get_user_meta($user_id, $forum_marked_key_name, true );
+                    if($forum_time_marked){  //check forum has been marked as read
+                            $has_read = ($topic_last_active_time <= $forum_time_marked);
+                    }
 
-            $forum_id = bbp_get_topic_forum_id($topic_id);
-            $topic_last_active_time = bbp_convert_date(get_post_meta( $topic_id, '_bbp_last_active_time', true ));
+                    if (!$has_read){ //check topic activity against user first visit
+                            $first_visit = self::get_user_first_visit($user_id);
+                            $has_read = ($topic_last_active_time <= $first_visit);
+                    }
 
+                    if (!$has_read){
+                            //TOPIC READ CHECK
 
-            $forum_marked_key_name = $this->prefix.'_marked_forum_'.$forum_id;
-            $forum_time_marked = get_user_meta($user_id, $forum_marked_key_name, true );
-            if($forum_time_marked){  //check forum has been marked as read
-                    $has_read = ($topic_last_active_time <= $forum_time_marked);
-            }
+                            if (self::post_created_before_plugin_installation($post_id)){
+                                    $has_read = true;
+                            }else{
+                                    $user_ids = get_post_meta($post_id,'bbppu_read_by',true);
+                                    $has_read = in_array($user_id,(array)$user_ids);
+                            }
+                    }
+                    
+                break;
 
-            if (!$has_read){ //check topic activity against user first visit
-                    $first_visit = self::get_user_first_visit($user_id);
-                    $has_read = ($topic_last_active_time <= $first_visit);
-            }
-
-            if (!$has_read){
-                    //TOPIC READ CHECK
-                    $meta_key_name = $this->prefix.'_read_by';
-                    //if the key was never set
-                    //(topic was created before the plugin was installed)
-                    //considerate as read
-
-                    if (!metadata_exists('post',$topic_id,$meta_key_name)){
+                case bbp_get_forum_post_type(): //forum
+                    
+                    //if forum is empty, set to true
+                    $post_count = bbp_get_forum_post_count($post_id);
+                    if(!$post_count){
                             $has_read = true;
                     }else{
-                            $user_ids = get_post_meta($topic_id,$meta_key_name,true);
-                            $has_read = in_array($user_id,(array)$user_ids);
+                        
+                        if (bbp_is_forum_category( $post_id )){
+                            
+                            $subforums = bbp_forum_get_subforums($post_id);
+                            
+                            if (!empty($subforums)) {
+                                
+                                $subforums_count = count($subforums);
+                                $subforums_read = 0;
+                                
+                                foreach ($subforums as $subforum) {
+                                    $has_user_read_subforum = $this->has_user_read($subforum->ID);
+                                    if ($has_user_read_subforum) $subforums_read++;
+                                }
+                                
+                                $has_read = ($subforums_count == $subforums_read);
+                                
+                            }
+                            
+                        }else{
+                            $user_last_visit = $this->get_user_last_forum_visit($post_id,$user_id);
+                            $forum_last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true ));
+                            $has_read = ($forum_last_active_time <= $user_last_visit);
+                        }
+
                     }
+                    
+                break;
+                
             }
+            
+            return apply_filters('bbppu_has_user_read',$has_read,$post_id,$user_id);
+            
+        }
 
-
-            return apply_filters('bbppu_user_has_read_topic',$has_read,$topic_id,$user_id);
-	} 
-        
-	function has_user_read_forum($forum_id,$user_id=false){
-
-            $has_read = false;
-
-            //validate forum
-            $forum_id = bbp_get_forum_id($forum_id);
-            if (get_post_type( $forum_id )!=bbp_get_forum_post_type()) return false;
-
-            //check user
-            if(!$user_id) $user_id = get_current_user_id();
-            if (!get_userdata( $user_id )) return false;
-
-            //if forum is empty, set to true
-            $post_count = bbp_get_forum_post_count($forum_id);
-            if(!$post_count){
-                    $has_read = true;
-            }else{
-                    $user_last_visit = $this->get_user_last_forum_visit($forum_id,$user_id);
-                    $forum_last_active_time = bbp_convert_date(get_post_meta( $forum_id, '_bbp_last_active_time', true ));
-                    $has_read = ($forum_last_active_time <= $user_last_visit);
-            }
-
-            return apply_filters('bbppu_user_has_read_forum',$has_read,$forum_id,$user_id);
-	}
 	function classes_attr($classes=false){
             if (!$classes) return false;
             return ' class="'.implode(" ",(array)$classes).'"';	
-	}        
-}
-/**
- * The main function responsible for returning the one true Instance
- * to functions everywhere.
- *
- * Use this function like you would a global variable, except without needing
- * to declare the global.
- *
- * Example: $pencil_bbp_unread = pencil_bbp_unread();
- *
- * @return The one true Instance
- */
-function bbp_pencil_unread() {
-	return bbP_Pencil_Unread::instance();
-}
-bbp_pencil_unread();
-?>         }
-
-            }
-
-            
-            
-            return apply_filters('bbppu_user_has_read_topic',$has_read,$topic_id,$user_id);
-        } 
-
+	}     
         
-        function has_user_read_forum($forum_id,$user_id=false){
-            
-            $has_read = false;
-            
-            //validate forum
-            $forum_id = bbp_get_forum_id($forum_id);
-            if (get_post_type( $forum_id )!=bbp_get_forum_post_type()) return false;
-            
-            //check user
-            if(!$user_id) $user_id = get_current_user_id();
-            if (!get_userdata( $user_id )) return false;
-
-                
-            //if forum is empty, set to true
-            $post_count = bbp_get_forum_post_count($forum_id);
-            if(!$post_count){
-
-                $has_read = true;
-
-            }else{
-
-                $user_last_visit = $this->get_user_last_forum_visit($forum_id,$user_id);
-                $forum_last_active_time = bbp_convert_date(get_post_meta( $forum_id, '_bbp_last_active_time', true ));
-                $has_read = ($forum_last_active_time <= $user_last_visit);
-            }
-            
-            return apply_filters('bbppu_user_has_read_forum',$has_read,$forum_id,$user_id);
+        //if the key was never set
+        //(post was created before the plugin was installed)
+        function post_created_before_plugin_installation($post_id){
+            if (!metadata_exists('post',$post_id,'bbppu_read_by')) return true;
+            return false;
         }
-
-        function classes_attr($classes=false){
-            if (!$classes) return false;
-            return ' class="'.implode(" ",(array)$classes).'"';
-            
-        }        
+                
 }
-
-
 /**
  * The main function responsible for returning the one true Instance
  * to functions everywhere.
@@ -613,11 +614,8 @@ bbp_pencil_unread();
  *
  * @return The one true Instance
  */
-
 function bbp_pencil_unread() {
 	return bbP_Pencil_Unread::instance();
 }
-
 bbp_pencil_unread();
-
 ?>
