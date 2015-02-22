@@ -149,7 +149,6 @@ class bbP_Pencil_Unread {
             add_action('bbp_template_before_topics_loop',array(&$this,'save_user_first_visit'));
             add_action('bbp_template_before_replies_loop',array(&$this,'save_user_first_visit'));
 
-
             //update forum / topic status
             add_action('bbp_template_after_topics_loop',array(&$this,'update_current_forum_visit_for_user')); //single forum
             add_action('bbp_template_after_replies_loop',array(&$this,'update_current_topic_read_by'));       //single topic
@@ -162,7 +161,6 @@ class bbP_Pencil_Unread {
             add_action( 'bbp_new_reply_pre_extras',array(&$this,"forum_was_read_before_new_reply"),10,2);
             add_action( 'bbp_new_reply',array(&$this,"new_reply"),10,5 );
             add_action( 'save_post',array( $this, 'new_reply_backend' ) );
-
 
             //mark as read link & action
             add_action('bbp_template_after_pagination_loop', array(&$this,"mark_as_read_single_forum_link"));
