@@ -40,7 +40,7 @@ class bbP_Pencil_Unread {
 	/**
 	 * @public name of the var used for plugin's actions
 	 */
-	public $action_varname = '';
+	public $action_varname = 'bbppu_action';
         
 	/**
 	 * @public IDs of the forums and their last visit time for the current user. 
@@ -88,7 +88,6 @@ class bbP_Pencil_Unread {
 		$this->basename   = plugin_basename( $this->file );
 		$this->plugin_dir = plugin_dir_path( $this->file );
 		$this->plugin_url = plugin_dir_url ( $this->file );
-                $this->action_varname = 'bbppu_action';
 	}
         
 	function includes(){
@@ -123,8 +122,7 @@ class bbP_Pencil_Unread {
 		$version_db_key = 'bbppu-db-version';
 		
 		$current_version = get_option($version_db_key);
-		
-		
+
 		if ($current_version==$this->db_version) return false;
 			
 		//install
@@ -138,58 +136,13 @@ class bbP_Pencil_Unread {
 		update_option($version_db_key, $this->db_version );
 	}
         
-        //filter list forums to add classes to the subforums links.
-        //this is a really nasty hack. 
-        //Should be fixed when bbpress fix this ticket :
-        //https://bbpress.trac.wordpress.org/ticket/2759#ticket
-        
-        function list_forums_class($output,$args){
-            
-            //remove filter to avoid infinite loop
-            remove_filter( 'bbp_list_forums', array(&$this,"list_forums_class"), 10 );
-            
-            //get sub forums
-            $sub_forums = bbp_forum_get_subforums( $args['forum_id'] );
-            $sub_forums_links = array();
-            foreach($sub_forums as $sub_forum){
-                $sub_forums_links[$sub_forum->ID] = bbp_get_forum_permalink( $sub_forum->ID );
-            }
-            
-            //get forums list nodes
-            $dom = new DOMDocument;
-            $dom->loadHTML($output);
-            $finder = new DomXPath($dom);
-            $classname="bbp-forum-link";
-            $forum_link_nodes = $finder->query("//*[contains(@class, '$classname')]");
-            
-            foreach ($forum_link_nodes as $forum_link_node) {
-                $forum_link = $forum_link_node->getAttribute('href');
-                $forum_id = array_search($forum_link, $sub_forums_links);
-                if ($forum_id){
-                    $forum_read = $this->has_user_read($forum_id);
-                    $classes = explode(' ',$forum_link_node->getAttribute('class'));
-                    $classes = $this->post_status_class($classes,$forum_id);
-                    $forum_link_node->setAttribute("class",implode(' ',$classes));
-                }
-                
-            }
-            
-            //re-add filter
-            add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
-            
-            return $dom->saveHTML();
-            
-            
-        }
-        
 	function logged_in_user_actions(){
             if(!is_user_logged_in()) return false;
 
+            //set classes for forums, topics, and subforums links.
             add_filter('bbp_get_forum_class', array(&$this,"post_status_class"),10,2);
             add_filter('bbp_get_topic_class', array(&$this,"post_status_class"),10,2);
-            
             add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
-            
 
             //save first visit (ever) time.  Older content will be tagged as "read".
             add_action('bbp_template_before_forums_loop',array(&$this,'save_user_first_visit'));
@@ -197,13 +150,11 @@ class bbP_Pencil_Unread {
             add_action('bbp_template_before_replies_loop',array(&$this,'save_user_first_visit'));
 
 
-            //single forum
-            add_action('bbp_template_after_topics_loop',array(&$this,'update_current_forum_visit_for_user'));
-
-            //single topic
-            add_action('bbp_template_after_replies_loop',array(&$this,'update_current_topic_read_by'));
+            //update forum / topic status
+            add_action('bbp_template_after_topics_loop',array(&$this,'update_current_forum_visit_for_user')); //single forum
+            add_action('bbp_template_after_replies_loop',array(&$this,'update_current_topic_read_by'));       //single topic
             
-            //saving
+            //save post actions
             add_action( 'bbp_new_topic_pre_extras',array(&$this,"forum_was_read_before_new_topic"));
             add_action( 'bbp_new_topic',array(&$this,"new_topic"),10,4 );
             add_action( 'save_post',array( $this, 'new_topic_backend' ) );
@@ -213,10 +164,9 @@ class bbP_Pencil_Unread {
             add_action( 'save_post',array( $this, 'new_reply_backend' ) );
 
 
-            //mark as read
+            //mark as read link & action
             add_action('bbp_template_after_pagination_loop', array(&$this,"mark_as_read_single_forum_link"));
-            //add_action('bbp_template_before_forums_loop', array(&$this,"mark_as_read_forums_link"));
-            add_action("wp", array(&$this,"check_link_mark_as_read"));
+            add_action("wp", array(&$this,"process_mark_as_read_link"));
 	}
         
 	/*
@@ -312,7 +262,7 @@ class bbP_Pencil_Unread {
             <?php
 	}
 	// processes the mark as read action
-	public function check_link_mark_as_read() {
+	public function process_mark_as_read_link() {
             global $post;
             if( !isset( $_GET['action'] ) || $_GET['action'] != 'bbpu_mark_read' )return false;
             if(is_single() && (get_post_type( $post->ID )==bbp_get_forum_post_type())){ //single forum
@@ -556,23 +506,17 @@ class bbP_Pencil_Unread {
                             $has_read = true;
                     }else{
                         
-                        if (bbp_is_forum_category( $post_id )){
-                            
-                            $subforums = bbp_forum_get_subforums($post_id);
-                            
-                            if (!empty($subforums)) {
-                                
-                                $subforums_count = count($subforums);
-                                $subforums_read = 0;
-                                
-                                foreach ($subforums as $subforum) {
-                                    $has_user_read_subforum = $this->has_user_read($subforum->ID);
-                                    if ($has_user_read_subforum) $subforums_read++;
-                                }
-                                
-                                $has_read = ($subforums_count == $subforums_read);
-                                
+                        if ( (bbp_is_forum_category( $post_id )) && ($subforums = bbp_forum_get_subforums($post_id)) ){
+
+                            $subforums_count = count($subforums);
+                            $subforums_read = 0;
+
+                            foreach ($subforums as $subforum) {
+                                $has_user_read_subforum = $this->has_user_read($subforum->ID);
+                                if ($has_user_read_subforum) $subforums_read++;
                             }
+
+                            $has_read = ($subforums_count == $subforums_read);
                             
                         }else{
                             $user_last_visit = $this->get_user_last_forum_visit($post_id,$user_id);
@@ -595,11 +539,54 @@ class bbP_Pencil_Unread {
             return ' class="'.implode(" ",(array)$classes).'"';	
 	}     
         
-        //if the key was never set
-        //(post was created before the plugin was installed)
+        //if the key was never set, it means that
+        //the post was created before the plugin was installed
         function post_created_before_plugin_installation($post_id){
             if (!metadata_exists('post',$post_id,'bbppu_read_by')) return true;
             return false;
+        }
+        
+       //filter list forums to add classes to the subforums links.
+        //this is a really nasty hack. 
+        //Should be fixed when bbpress fix this ticket :
+        //https://bbpress.trac.wordpress.org/ticket/2759#ticket
+        
+        function list_forums_class($output,$args){
+            
+            //remove filter to avoid infinite loop
+            remove_filter( 'bbp_list_forums', array(&$this,"list_forums_class"), 10 );
+            
+            //get sub forums
+            $sub_forums = bbp_forum_get_subforums( $args['forum_id'] );
+            $sub_forums_links = array();
+            foreach($sub_forums as $sub_forum){
+                $sub_forums_links[$sub_forum->ID] = bbp_get_forum_permalink( $sub_forum->ID );
+            }
+            
+            //get forums list nodes
+            $dom = new DOMDocument;
+            $dom->loadHTML($output);
+            $finder = new DomXPath($dom);
+            $classname="bbp-forum-link";
+            $forum_link_nodes = $finder->query("//*[contains(@class, '$classname')]");
+            
+            foreach ($forum_link_nodes as $forum_link_node) {
+                $forum_link = $forum_link_node->getAttribute('href');
+                $forum_id = array_search($forum_link, $sub_forums_links);
+                if ($forum_id){
+                    $forum_read = $this->has_user_read($forum_id);
+                    $classes = explode(' ',$forum_link_node->getAttribute('class'));
+                    $classes = $this->post_status_class($classes,$forum_id);
+                    $forum_link_node->setAttribute("class",implode(' ',$classes));
+                }
+                
+            }
+            
+            //re-add filter
+            add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
+            
+            return $dom->saveHTML();
+
         }
                 
 }
