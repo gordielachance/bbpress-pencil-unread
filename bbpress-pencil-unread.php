@@ -162,9 +162,10 @@ class bbP_Pencil_Unread {
             add_action( 'bbp_new_reply',array(&$this,"new_reply"),10,5 );
             add_action( 'save_post',array( $this, 'new_reply_backend' ) );
 
-            //mark as read link & action
-            add_action('bbp_template_after_pagination_loop', array(&$this,"mark_as_read_single_forum_link"));
-            add_action("wp", array(&$this,"process_mark_as_read_link"));
+            //mark as read
+            //TO FIX should be rather hooked on bbp_template_before_single_forum ?
+            add_action('bbp_template_after_pagination_loop', array(&$this,"mark_as_read_single_forum_link"));   //generates "mark as read" link
+            add_action("wp", array(&$this,"process_mark_as_read_link"));    //process "mark as read" link
 	}
         
 	/*
