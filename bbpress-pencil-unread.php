@@ -44,7 +44,7 @@ class bbP_Pencil_Unread {
         
 	/**
 	 * @public IDs of the forums and their last visit time for the current user. 
-         * Stored because we access it(has_user_read_forum) after having updated (update_forum_visit_for_user) it.
+         * Stored because we access it(has_user_read) after having updated (update_forum_visit_for_user) it.
 	 */
 	public $cuser_forums_visits = array();
         
@@ -101,15 +101,14 @@ class bbP_Pencil_Unread {
             
             /*actions are hooked on bbp hooks so plugin will not crash if bbpress is not enabled*/
 
-            //localization
-            add_action('bbp_init', array($this, 'load_plugin_textdomain'));
+            add_action('bbp_init', array($this, 'load_plugin_textdomain'));     //localization
+            add_action('bbp_loaded', array($this, 'upgrade'));                  //upgrade
+            add_action('bbp_init',array(&$this,"logged_in_user_actions"));      //logged in users actions
 
-            //upgrade
-            add_action('bbp_loaded', array($this, 'upgrade'));
-
+            //scripts & styles
             add_action('bbp_init', array($this, 'register_scripts_styles'));
             add_action('bbp_enqueue_scripts', array($this, 'scripts_styles'));
-            add_action('bbp_init',array(&$this,"logged_in_user_actions"));
+            
 	}
         
 	public function load_plugin_textdomain(){
@@ -220,6 +219,10 @@ class bbP_Pencil_Unread {
             $user_meta_key = 'bbppu_forums_visits';
             $visits = $this->get_forums_visits_for_user($user_id);
             $visits[$forum_id] = current_time('timestamp');
+            ksort($visits);
+            
+            self::debug_log("update_forum_visit_for_user: forum#".$forum_id.", user#".$user_id);
+            self::debug_log($visits);
 
             return update_user_meta( $user_id, $user_meta_key, $visits );
 	}
@@ -286,11 +289,11 @@ class bbP_Pencil_Unread {
 	 * @param type $forum_id
 	 */
 	function forum_was_read_before_new_topic($forum_id){
-            $this->forum_was_read_before_new_post = self::has_user_read_forum($forum_id);
+            $this->forum_was_read_before_new_post = self::has_user_read($forum_id);
 	}
         
 	function forum_was_read_before_new_reply($topic_id, $forum_id){
-            $this->forum_was_read_before_new_post = self::has_user_read_forum($forum_id);
+            $this->forum_was_read_before_new_post = self::has_user_read($forum_id);
 	}
         
 	/**
@@ -529,6 +532,8 @@ class bbP_Pencil_Unread {
                 
             }
             
+            self::debug_log('has_user_read: has_read:'.$has_read.', post#'.$post_id.', user#'.$user_id);
+            
             return apply_filters('bbppu_has_user_read',$has_read,$post_id,$user_id);
             
         }
@@ -586,6 +591,19 @@ class bbP_Pencil_Unread {
             
             return $dom->saveHTML();
 
+        }
+        
+        function debug_log($message) {
+
+            if (WP_DEBUG_LOG !== true) return false;
+
+            $prefix = '[bbppu] : ';
+            
+            if (is_array($message) || is_object($message)) {
+                error_log($prefix.print_r($message, true));
+            } else {
+                error_log($prefix.$message);
+            }
         }
                 
 }
