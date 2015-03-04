@@ -145,12 +145,11 @@ class bbP_Pencil_Unread {
 
                         //save datas
                         foreach($users_marks as $user_id=>$user_marks){
-                            update_user_meta($user_id,'bbppu_marked_forums', $user_marks );
+                            if (update_user_meta($user_id,'bbppu_marked_forums', $user_marks )){
+								//remove old datas
+                        		$wpdb->query($wpdb->prepare("DELETE FROM $wpdb->usermeta WHERE user_id='%d' AND meta_key LIKE '%s'", $user_id, 'bbppu_marked_forum_%'));
+                            }
                         }
-                        
-                        //remove old datas
-                        $wpdb->query($wpdb->prepare("DELETE FROM $wpdb->usermeta WHERE meta_key LIKE '%s'",'bbppu_marked_forum_%'));
-
                     }
                 }
 
