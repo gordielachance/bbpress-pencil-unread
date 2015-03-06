@@ -602,47 +602,50 @@ class bbP_Pencil_Unread {
             if ( (!$has_read) && (!bbp_get_forum_post_count($post_id)) ){
                 $has_read = true;
             }
-
-            switch($post_type){
+            
+            if (!$has_read){
                 
-                case bbp_get_topic_post_type(): //topic
-                    
-                    $readers = self::get_topic_readers($post_id);
+                switch($post_type){
 
-                    if ( false === $readers ){ //if the plugin was enabled, this should never be false but an array
-                        $has_read = true;
-                    }else{ //check this topic has been read by the logged user
-                        $has_read = in_array($user_id,(array)$readers);
-                    }
-                    
-                break;
+                    case bbp_get_topic_post_type(): //topic
 
-                case bbp_get_forum_post_type(): //forum
+                        $readers = self::get_topic_readers($post_id);
 
-                    if ( (bbp_is_forum_category( $post_id )) && ($subforums = bbp_forum_get_subforums($post_id)) ){
-
-                        $subforums_count = count($subforums);
-                        $subforums_read = 0;
-
-                        foreach ($subforums as $subforum) {
-                            $has_user_read_subforum = $this->has_user_read($subforum->ID);
-                            if ($has_user_read_subforum) $subforums_read++;
+                        if ( false === $readers ){ //if the plugin was enabled, this should never be false but an array
+                            $has_read = true;
+                        }else{ //check this topic has been read by the logged user
+                            $has_read = in_array($user_id,(array)$readers);
                         }
 
-                        $has_read = ($subforums_count == $subforums_read);
+                    break;
 
-                    }else{
+                    case bbp_get_forum_post_type(): //forum
 
-                        if (!$has_read){
+                        if ( (bbp_is_forum_category( $post_id )) && ($subforums = bbp_forum_get_subforums($post_id)) ){
+
+                            $subforums_count = count($subforums);
+                            $subforums_read = 0;
+
+                            foreach ($subforums as $subforum) {
+                                $has_user_read_subforum = $this->has_user_read($subforum->ID);
+                                if ($has_user_read_subforum) $subforums_read++;
+                            }
+
+                            $has_read = ($subforums_count == $subforums_read);
+
+                        }else{
+
                             $user_last_visit = self::get_user_last_forum_visit($post_id,$user_id);
                             $has_read = ($last_active_time <= $user_last_visit);
+
                         }
 
-                    }
-                    
-                break;
-                
+                    break;
+
+                }
             }
+
+            
             
             self::debug_log('user#'.$user_id.' has_user_read '.get_post_type($post_id).'#'.$post_id.' : '.(int)$has_read);
             
