@@ -4,7 +4,7 @@ Plugin Name: bbPress Pencil Unread
 Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
 Description: Display which bbPress forums/topics have already been read by the user.
 Author: G.Breant
-Version: 1.1.0
+Version: 1.1.1
 Author URI: http://sandbox.pencil2d.org/
 License: GPL2+
 Text Domain: bbppu
@@ -17,7 +17,7 @@ class bbP_Pencil_Unread {
         /**
 	 * @public string plugin version
 	 */
-	public $version = '1.1.0';
+	public $version = '1.1.1';
         
 	/**
 	 * @public string plugin DB version
@@ -43,10 +43,9 @@ class bbP_Pencil_Unread {
 	public $action_varname = 'bbppu_action';
         
 	/**
-	 * @public IDs of the forums and their last visit time for the current user. 
-         * Stored because we access it(has_user_read) after having updated (update_forum_visit_for_user) it.
+	 * @public meta name for topics having been read
 	 */
-	public $cuser_forums_visits = array();
+	public $topic_read_metaname = 'bbppu_read_by';
         
 	/**
          * When creating a new post (topic/reply), set this var to true or false
@@ -103,6 +102,7 @@ class bbP_Pencil_Unread {
 
             add_action('bbp_init', array($this, 'load_plugin_textdomain'));     //localization
             add_action('bbp_loaded', array($this, 'upgrade'));                  //upgrade
+            
             add_action('bbp_init',array(&$this,"logged_in_user_actions"));      //logged in users actions
 
             //scripts & styles
@@ -158,6 +158,7 @@ class bbP_Pencil_Unread {
 	}
         
 	function logged_in_user_actions(){
+            
             if(!is_user_logged_in()) return false;
 
             //set classes for forums, topics, and subforums links.
@@ -166,9 +167,7 @@ class bbP_Pencil_Unread {
             add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
 
             //save first visit (ever) time.  Older content will be tagged as "read".
-            add_action('bbp_template_before_forums_loop',array(&$this,'save_user_first_visit'));
-            add_action('bbp_template_before_topics_loop',array(&$this,'save_user_first_visit'));
-            add_action('bbp_template_before_replies_loop',array(&$this,'save_user_first_visit'));
+            add_action( 'bbp_locate_template',array(&$this,'save_user_first_visit'));
 
             //update forum / topic status
             add_action('bbp_template_after_forums_loop',array(&$this,'update_current_forum_visit_for_user')); //single forum
@@ -191,12 +190,13 @@ class bbP_Pencil_Unread {
 	}
         
 	/*
-         * Save the user first visit time, so past topics / replies can be set to read even if they are not.
+         * Save the user first visit time, 
+         * so past topics / replies can be set to read even if they are not.
          * TO FIX date checked should be registration time ?
          */
         
 	function save_user_first_visit(){
-		
+
             $user_id = get_current_user_id();
             if(!$user_id) return false;
 
@@ -205,6 +205,9 @@ class bbP_Pencil_Unread {
 
             $time = current_time('timestamp');
             update_user_meta($user_id,'bbppu_first_visit', $time );
+            
+            self::debug_log("save_user_first_visit");
+            
 	}
         
 		function get_user_first_visit($user_id){
@@ -230,7 +233,7 @@ class bbP_Pencil_Unread {
         
 	function update_forum_visit_for_user($forum_id=false,$user_id=false){
 		
-            //check user
+            //validate user
             if(!$user_id) $user_id = get_current_user_id();
             if (!get_userdata( $user_id )) return false;
 
@@ -310,7 +313,7 @@ class bbP_Pencil_Unread {
         
 	public function mark_single_forum_as_read($forum_id) {
 
-            //check user
+            //validate user
             $user_id = get_current_user_id();
             if(!$user_id) return false;
             
@@ -430,28 +433,31 @@ class bbP_Pencil_Unread {
             return $this->update_topic_read_by();
 	}
 	function update_topic_read_by($topic_id=false,$user_id=false,$reset=false){
-            //get topic id (even if it's a reply)
-            $topic_id = bbp_get_topic_id($topic_id);
-            //check forum
-            if (get_post_type( $topic_id )!=bbp_get_topic_post_type()) return false;
-            //check user
+            
+            //validate user
             if(!$user_id) $user_id = get_current_user_id();
             if (!get_userdata( $user_id )) return false;
-            $meta_key_name = 'bbppu_read_by';
-            if(!$reset){
-                    $read_by_uid = get_post_meta( $topic_id, $meta_key_name, true );
+
+            $read_by_uid = array($user_id);
+            
+            //get topic id (even if it's a reply)
+            $topic_id = bbp_get_topic_id($topic_id);
+            
+            //check topic
+            if (get_post_type( $topic_id )!=bbp_get_topic_post_type()) return false;
+            
+            $readers = (array)self::get_topic_readers($topic_id);
+            
+            //if reset is not enabled, clone previous readers.
+            if( (!$reset) && ( false !== $readers ) ){
+                    $read_by_uid = array_merge($readers,$read_by_uid);
+                    $read_by_uid = array_unique($read_by_uid);//remove duplicates
             }
 
-            //remove duplicates
-            $read_by_uid[]=$user_id;
-            $read_by_uid = array_unique($read_by_uid);
-
-            return update_post_meta( $topic_id, $meta_key_name, $read_by_uid );
+            return update_post_meta( $topic_id, $this->topic_read_metaname, $read_by_uid );
 	}
 	/**
 	* Get the time of the last visit of the user for each forum.
-	* At the first call, value is stored in $this->cuser_forums_visits for the current user,
-	* so it's the "old" value is not erased when calling update_forum_visit_for_user.
 	* @param type $forum_id
 	* @param type $user_id
 	* @return boolean
@@ -468,18 +474,12 @@ class bbP_Pencil_Unread {
             }
 	}
 	function get_forums_visits_for_user($user_id=false){
-            //check user
+            //validate user
             if(!$user_id) $user_id = get_current_user_id();
             if (!get_userdata( $user_id )) return false;
-            $user_meta_key = 'bbppu_forums_visits';
-            //if (($user_id==get_current_user_id())&&($this->cuser_forums_visits)) { //use the value already stored
-                //  $meta = $this->cuser_forums_visits;
-            //}else{
-                    $visits = get_user_meta($user_id,$user_meta_key, true );
-                //  if ($user_id==get_current_user_id()){
-                            //$this->cuser_forums_visits = $meta;
-                    //}
-            //}
+
+            $visits = get_user_meta($user_id,'bbppu_forums_visits', true );
+
             return $visits;
 	}
 	function get_user_last_forum_visit($forum_id,$user_id=false){
@@ -512,7 +512,7 @@ class bbP_Pencil_Unread {
         
         function get_forum_marked_time($post_id = null, $user_id = null, $include_ancestors = true){
             
-            //check user
+            //validate user
             if(!$user_id) $user_id = get_current_user_id();
             if (!get_userdata( $user_id )) return false;
             
@@ -577,78 +577,65 @@ class bbP_Pencil_Unread {
             
             $has_read = false;
             
-            //check user
+            //validate user
             if(!$user_id) $user_id = get_current_user_id();
-            if (!get_userdata( $user_id )) return false;
-            
-            //check marked
-            $forum_id = self::get_forum_id_for_post($post_id);
-            $forum_time_marked = self::get_forum_marked_time($forum_id,$user_id);
+            if (!get_userdata( $user_id )) return;
 
-            $post_type = get_post_type( $post_id );
+            //validate forum
+            $forum_id = self::get_forum_id_for_post($post_id);
+            if ($forum_id === false) return;
             
+            $post_type = get_post_type($post_id);
+            $last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true )); //get post last activity time
             
+            //this post has been created before user's first visit
+            if ( (!$has_read) && ( $first_visit = self::get_user_first_visit($user_id) ) ){
+                $has_read = ($last_active_time <= $first_visit);
+            }
             
+            //this forum or its ancestor have been marked has read
+            if ((!$has_read) && ($forum_time_marked = self::get_forum_marked_time($forum_id,$user_id))){
+                $has_read = ($last_active_time <= $forum_time_marked);
+            }
+            
+            //the forum has neither topics nor replies
+            if ( (!$has_read) && (!bbp_get_forum_post_count($post_id)) ){
+                $has_read = true;
+            }
+
             switch($post_type){
                 
                 case bbp_get_topic_post_type(): //topic
-
-                    $topic_last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true ));
                     
-                    if($forum_time_marked){  //check forum has been marked as read
-                            $has_read = ($topic_last_active_time <= $forum_time_marked);
-                    }
+                    $readers = self::get_topic_readers($post_id);
 
-                    if (!$has_read){ //check topic activity against user first visit
-                            $first_visit = self::get_user_first_visit($user_id);
-                            $has_read = ($topic_last_active_time <= $first_visit);
-                    }
-
-                    if (!$has_read){ //post was created before plugin installation
-                        $has_read = (self::post_created_before_plugin_installation($post_id));
-                    }
-                    
-                    if (!$has_read){ //check topic read state
-                        $user_ids = get_post_meta($post_id,'bbppu_read_by',true);
-                        $has_read = in_array($user_id,(array)$user_ids);
+                    if ( false === $readers ){ //if the plugin was enabled, this should never be false but an array
+                        $has_read = true;
+                    }else{ //check this topic has been read by the logged user
+                        $has_read = in_array($user_id,(array)$readers);
                     }
                     
                 break;
 
                 case bbp_get_forum_post_type(): //forum
-                    
-                    //if forum is empty, set to true
-                    $post_count = bbp_get_forum_post_count($post_id);
-                    if(!$post_count){
-                            $has_read = true;
+
+                    if ( (bbp_is_forum_category( $post_id )) && ($subforums = bbp_forum_get_subforums($post_id)) ){
+
+                        $subforums_count = count($subforums);
+                        $subforums_read = 0;
+
+                        foreach ($subforums as $subforum) {
+                            $has_user_read_subforum = $this->has_user_read($subforum->ID);
+                            if ($has_user_read_subforum) $subforums_read++;
+                        }
+
+                        $has_read = ($subforums_count == $subforums_read);
+
                     }else{
 
-                        if ( (bbp_is_forum_category( $post_id )) && ($subforums = bbp_forum_get_subforums($post_id)) ){
-
-                            $subforums_count = count($subforums);
-                            $subforums_read = 0;
-
-                            foreach ($subforums as $subforum) {
-                                $has_user_read_subforum = $this->has_user_read($subforum->ID);
-                                if ($has_user_read_subforum) $subforums_read++;
-                            }
-
-                            $has_read = ($subforums_count == $subforums_read);
-
-                        }else{
-                            
-                            $forum_last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true ));
-
-                            if($forum_time_marked){  //check forum has been marked as read
-                                    $has_read = ($forum_last_active_time <= $forum_time_marked);
-                            }
-                            
-                            if (!$has_read){
-                                $user_last_visit = self::get_user_last_forum_visit($post_id,$user_id);
- 
-                                $has_read = ($forum_last_active_time <= $user_last_visit);
-                            }
-
+                        if (!$has_read){
+                            $user_last_visit = self::get_user_last_forum_visit($post_id,$user_id);
+                            $has_read = ($last_active_time <= $user_last_visit);
                         }
 
                     }
@@ -662,18 +649,21 @@ class bbP_Pencil_Unread {
             return apply_filters('bbppu_has_user_read',$has_read,$post_id,$user_id);
             
         }
-
-	function classes_attr($classes=false){
-            if (!$classes) return false;
-            return ' class="'.implode(" ",(array)$classes).'"';	
-	}     
         
-        //if the key was never set, it means that
-        //the post was created before the plugin was installed
-        function post_created_before_plugin_installation($post_id){
-            if (!metadata_exists('post',$post_id,'bbppu_read_by')) return true;
-            return false;
+        /**
+         * Get user ids of visitors having read this topic.
+         * Returns false if the meta was never set (plugin not yet installed / disabled)
+         * Or returns IDs of users having read the topic
+         * @param type $topic_id
+         * @return false or array
+         */
+        
+        function get_topic_readers($topic_id){
+            if (!metadata_exists('post',$topic_id,$this->topic_read_metaname)) return false;
+            $user_ids = get_post_meta($topic_id,$this->topic_read_metaname,true);
+            return (array)$user_ids;
         }
+
         
        //filter list forums to add classes to the subforums links.
         //this is a really nasty hack. 
@@ -730,6 +720,11 @@ class bbP_Pencil_Unread {
                 error_log($prefix.$message);
             }
         }
+        
+	function classes_attr($classes=false){
+            if (!$classes) return false;
+            return ' class="'.implode(" ",(array)$classes).'"';	
+	}  
                 
 }
 /**
