@@ -204,6 +204,8 @@ class bbP_Pencil_Unread {
          * @param type $forum_id
          * @return boolean 
          */
+         
+        //TO FIX check if can be replaced by update_forum_visit_for_user(); so we can remove this function.
             
 	function update_current_forum_visit_for_user(){
             global $wp_query;
