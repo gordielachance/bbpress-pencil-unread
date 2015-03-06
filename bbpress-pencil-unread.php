@@ -132,6 +132,8 @@ class bbP_Pencil_Unread {
                     
                     if ( $current_version < 105){
                         
+                        //remove 'bbppu_first_visit' usermetas
+                        
                         $wpdb->query( 
                             $wpdb->prepare( 
                                 "
@@ -140,8 +142,6 @@ class bbP_Pencil_Unread {
                                 "
                                 )
                         );
-                        
-                    }elseif ( $current_version < 105){
                         
                         //convert old "bbppu_marked_forum_XXX" user meta keys to a global "bbppu_marked_forums" key.
                         
