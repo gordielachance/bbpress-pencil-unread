@@ -22,7 +22,7 @@ class bbP_Pencil_Unread {
 	/**
 	 * @public string plugin DB version
 	 */
-	public $db_version = '105';
+	public $db_version = '106';
 	
 	/** Paths *****************************************************************/
 	
@@ -129,8 +129,19 @@ class bbP_Pencil_Unread {
 			//require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 			//dbDelta($sql);
 		}else{  //upgrade
-
+                    
                     if ( $current_version < 105){
+                        
+                        $wpdb->query( 
+                            $wpdb->prepare( 
+                                "
+                                DELETE FROM $wpdb->usermeta
+                                WHERE meta_key = `bbppu_first_visit`
+                                "
+                                )
+                        );
+                        
+                    }elseif ( $current_version < 105){
                         
                         //convert old "bbppu_marked_forum_XXX" user meta keys to a global "bbppu_marked_forums" key.
                         
@@ -166,9 +177,6 @@ class bbP_Pencil_Unread {
             add_filter('bbp_get_topic_class', array(&$this,"post_status_class"),10,2);
             add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
 
-            //save first visit (ever) time.  Older content will be tagged as "read".
-            add_action( 'bbp_locate_template',array(&$this,'save_user_first_visit'));
-
             //update forum / topic status
             add_action('bbp_template_after_forums_loop',array(&$this,'update_current_forum_visit_for_user')); //single forum
             add_action('bbp_template_after_topics_loop',array(&$this,'update_current_forum_visit_for_user')); //single forum
@@ -188,33 +196,7 @@ class bbP_Pencil_Unread {
             add_action('bbp_template_after_pagination_loop', array(&$this,"mark_as_read_single_forum_link"));   //generates "mark as read" link
             add_action("wp", array(&$this,"process_mark_as_read_link"));    //process "mark as read" link
 	}
-        
-	/*
-         * Save the user first visit time, 
-         * so past topics / replies can be set to read even if they are not.
-         * TO FIX date checked should be registration time ?
-         */
-        
-	function save_user_first_visit(){
 
-            $user_id = get_current_user_id();
-            if(!$user_id) return false;
-
-            $first_visit = self::get_user_first_visit($user_id);
-            if($first_visit) return false;
-
-            $time = current_time('timestamp');
-            update_user_meta($user_id,'bbppu_first_visit', $time );
-            
-            self::debug_log("save_user_first_visit");
-            
-	}
-        
-		function get_user_first_visit($user_id){
-                    $user_id = get_current_user_id();
-                    if(!$user_id) return false;
-                    return get_user_meta($user_id,'bbppu_first_visit',true);
-		}
             
 	/**
          * When a user visits a single forum, save the time of that visit so we can compare later
@@ -463,14 +445,19 @@ class bbP_Pencil_Unread {
 	* @return boolean
 	*/
 	function get_single_forum_visit_for_user($forum_id=false,$user_id=false){
+            
+            //validate user
+            if(!$user_id) $user_id = get_current_user_id();
+            if ($user_meta !== get_userdata( $user_id )) return false;
+            
             //validate forum
             $forum_id = bbp_get_forum_id($forum_id);
             if(!$forum_id) return false;
             $visits = self::get_forums_visits_for_user($user_id);
             if ((is_array($visits))&&(array_key_exists($forum_id, $visits))) {
                     return $visits[$forum_id];
-            }else{//forum has never been visited before, return first visit time
-                    return self::get_user_first_visit($user_id);
+            }else{//forum has never been visited before, return registration time
+                return $user_meta->user_registered;
             }
 	}
 	function get_forums_visits_for_user($user_id=false){
@@ -579,7 +566,7 @@ class bbP_Pencil_Unread {
             
             //validate user
             if(!$user_id) $user_id = get_current_user_id();
-            if (!get_userdata( $user_id )) return;
+            if ($user_meta !== get_userdata( $user_id )) return;
 
             //validate forum
             $forum_id = self::get_forum_id_for_post($post_id);
@@ -589,7 +576,7 @@ class bbP_Pencil_Unread {
             $last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true )); //get post last activity time
             
             //this post has been created before user's first visit
-            if ( (!$has_read) && ( $first_visit = self::get_user_first_visit($user_id) ) ){
+            if ( (!$has_read) && ( $first_visit = $user_meta->user_registered ) ){
                 $has_read = ($last_active_time <= $first_visit);
             }
             
