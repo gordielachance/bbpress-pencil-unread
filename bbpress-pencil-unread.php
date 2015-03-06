@@ -471,10 +471,7 @@ class bbP_Pencil_Unread {
 
             return $visits;
 	}
-	function get_user_last_forum_visit($forum_id,$user_id=false){
-            $last_visit = $this->get_single_forum_visit_for_user($forum_id,$user_id);
-            return $last_visit;
-	}
+
 	function post_status_class($classes,$post_id){
             
             //TO FIX check allowed post types
@@ -628,7 +625,7 @@ class bbP_Pencil_Unread {
                             break;
                         }
 
-                        $user_last_visit = self::get_user_last_forum_visit($post_id,$user_id);
+                        $user_last_visit = self::get_single_forum_visit_for_user($post_id,$user_id);
                         $has_read = ($last_active_time <= $user_last_visit);
 
 
