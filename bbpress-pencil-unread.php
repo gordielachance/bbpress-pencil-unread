@@ -401,6 +401,9 @@ class bbP_Pencil_Unread {
                     $read_by_uid = get_post_meta( $topic_id, $meta_key_name, true );
             }
 
+            $forum_id = bbp_get_topic_forum_id($topic_id);
+            $this->update_forum_visit_for_user();
+
             //remove duplicates
             $read_by_uid[]=$user_id;
             $read_by_uid = array_unique($read_by_uid);
