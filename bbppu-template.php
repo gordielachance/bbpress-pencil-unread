@@ -12,4 +12,13 @@ function bbppu_user_has_read_forum( $forum_id,$user_id=false ){
 
 } 
 
+function bbppu_classes($classes){
+    echo wp_music_get_classes($classes);
+}
+
+function bbppu_get_classes($classes){
+    if (empty($classes)) return;
+    return' class="'.implode(' ',$classes).'"';
+}
+
 ?>

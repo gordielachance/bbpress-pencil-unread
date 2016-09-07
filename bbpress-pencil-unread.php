@@ -46,6 +46,8 @@ class bbP_Pencil_Unread {
 	 * @public meta name for topics having been read
 	 */
 	public $topic_read_metaname = 'bbppu_read_by';
+    
+    static $meta_name_options = 'bbppu_options';
         
 	/**
          * When creating a new post (topic/reply), set this var to true or false
@@ -87,9 +89,19 @@ class bbP_Pencil_Unread {
 		$this->basename   = plugin_basename( $this->file );
 		$this->plugin_dir = plugin_dir_path( $this->file );
 		$this->plugin_url = plugin_dir_url ( $this->file );
+        
+        $this->options_default = array(
+            'marked_read_before_first_visit'      => true, //all items dated befoe user's first visit
+            //'marked_read_forum_visited'           => true //set a forum as read if it has been visited - even if all topics have not been read //TO FIX TO IMPLEMENT
+        );
+        
+        $this->options = wp_parse_args(get_option( self::$meta_name_options), $this->options_default);
+        
+        
 	}
         
 	function includes(){
+            require( $this->plugin_dir . 'bbppu-functions.php');
             require( $this->plugin_dir . 'bbppu-template.php');
             require( $this->plugin_dir . 'bbppu-ajax.php');
             if (is_admin()){
@@ -575,7 +587,7 @@ class bbP_Pencil_Unread {
             $last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true )); //get post last activity time
             
             //this post has been created before user's first visit
-            if ( (!$has_read) && ( $first_visit = $user_meta->user_registered ) ){
+            if ( (!$has_read) && ( $this->get_option('marked_read_before_first_visit') ) && ( $first_visit = $user_meta->user_registered ) ){
                 $has_read = ($last_active_time <= $first_visit);
             }
             
@@ -712,11 +724,16 @@ class bbP_Pencil_Unread {
                 error_log($prefix.$message);
             }
         }
-        
-	function classes_attr($classes=false){
-            if (!$classes) return false;
-            return ' class="'.implode(" ",(array)$classes).'"';	
-	}  
+
+    
+    function get_options($keys = null){
+        return bbppu_get_array_value($keys,$this->options);
+    }
+    
+    public function get_default_option($keys = null){
+        return bbppu_get_array_value($keys,$this->options_default);
+    }
+    
                 
 }
 /**
