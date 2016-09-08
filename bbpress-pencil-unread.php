@@ -3,12 +3,11 @@
 Plugin Name: bbPress Pencil Unread
 Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
 Description: Display which bbPress forums/topics have already been read by the user.
-Author: G.Breant
 Version: 1.1.1
+Author: G.Breant
 Author URI: http://sandbox.pencil2d.org/
-License: GPL2+
 Text Domain: bbppu
-Domain Path: /languages/
+Domain Path: /languages
 */
 
 class bbP_Pencil_Unread {
@@ -47,7 +46,7 @@ class bbP_Pencil_Unread {
 	 */
 	public $topic_read_metaname = 'bbppu_read_by';
     
-    static $meta_name_options = 'bbppu_options';
+    public $meta_name_options = 'bbppu_options';
         
 	/**
          * When creating a new post (topic/reply), set this var to true or false
@@ -91,17 +90,17 @@ class bbP_Pencil_Unread {
 		$this->plugin_url = plugin_dir_url ( $this->file );
         
         $this->options_default = array(
-            'marked_read_before_first_visit'      => true, //all items dated befoe user's first visit
-            //'marked_read_forum_visited'           => true //set a forum as read if it has been visited - even if all topics have not been read //TO FIX TO IMPLEMENT
+            'test_registration_time'                => 'on' //all items dated befoe user's first visit
         );
         
-        $this->options = wp_parse_args(get_option( self::$meta_name_options), $this->options_default);
+        $this->options = wp_parse_args(get_option( $this->meta_name_options), $this->options_default);
         
         
 	}
         
 	function includes(){
             require( $this->plugin_dir . 'bbppu-functions.php');
+            require( $this->plugin_dir . 'bbppu-settings.php');
             require( $this->plugin_dir . 'bbppu-template.php');
             require( $this->plugin_dir . 'bbppu-ajax.php');
             if (is_admin()){
@@ -208,8 +207,7 @@ class bbP_Pencil_Unread {
             add_action('bbp_template_after_pagination_loop', array(&$this,"mark_as_read_single_forum_link"));   //generates "mark as read" link
             add_action("wp", array(&$this,"process_mark_as_read_link"));    //process "mark as read" link
 	}
-
-            
+     
 	/**
          * When a user visits a single forum, save the time of that visit so we can compare later
          * @param type $user_id
@@ -249,7 +247,8 @@ class bbP_Pencil_Unread {
 	}
         
 	function register_scripts_styles(){
-            wp_register_style('bbppu', $this->plugin_url . '_inc/bbppu.css',false,$this->version);
+            wp_register_style('font-awesome', '//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css',false,'4.3.0');
+            wp_register_style('bbppu', $this->plugin_url . '_inc/css/bbppu.css',false,$this->version);
             wp_register_script('bbppu', $this->plugin_url . '_inc/js/bbppu.js',array('jquery'),$this->version);
 	}
 	function scripts_styles(){
@@ -266,6 +265,7 @@ class bbP_Pencil_Unread {
             wp_localize_script('bbppu','bbppuL10n', $localize_vars);
 
             //STYLES
+            wp_enqueue_style('font-awesome');
             wp_enqueue_style('bbppu');
 	}
         
@@ -280,7 +280,7 @@ class bbP_Pencil_Unread {
             $url = wp_nonce_url( $url,$nonce_action);
             ?>
             <div class="bbppu-mark-as-read">
-                    <a href="<?php echo $url;?>" data-nonce="<?php echo $nonce;?>" data-forum-id="<?php echo $forum_id;?>"><?php _e('Mark all as read','bbppu');?></a>
+                    <a href="<?php echo $url;?>" data-nonce="<?php echo $nonce;?>" data-forum-id="<?php echo $forum_id;?>"><i class="bbppu-loading fa fa-circle-o-notch fa-spin fa-fw"></i><?php _e('Mark all as read','bbppu');?></a>
             </div>
             <?php
 	}
@@ -523,9 +523,9 @@ class bbP_Pencil_Unread {
                 $ids_to_check = array_merge( bbp_get_forum_ancestors( $forum_id ), $ids_to_check);
             }
             
-            $usermarks = self::get_marked_forums($user_id);
+            if ( !$usermarks = self::get_marked_forums($user_id) ) return;
 
-            //remove uneeded forums ids
+            //remove marked forums ids
             foreach ( $usermarks as $forum_id => $forum_mark ){
                 if ( !in_array($forum_id, $ids_to_check) ) unset($usermarks[$forum_id]);
             }
@@ -577,7 +577,7 @@ class bbP_Pencil_Unread {
             
             //validate user
             if(!$user_id) $user_id = get_current_user_id();
-            if ($user_meta !== get_userdata( $user_id )) return;
+            if (!$user_meta = get_userdata( $user_id )) return;
 
             //validate forum
             $forum_id = self::get_forum_id_for_post($post_id);
@@ -587,7 +587,7 @@ class bbP_Pencil_Unread {
             $last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true )); //get post last activity time
             
             //this post has been created before user's first visit
-            if ( (!$has_read) && ( $this->get_option('marked_read_before_first_visit') ) && ( $first_visit = $user_meta->user_registered ) ){
+            if ( (!$has_read) && ( $this->get_options('test_registration_time') == 'on' ) && ( $first_visit = $user_meta->user_registered ) ){
                 $has_read = ($last_active_time <= $first_visit);
             }
             
@@ -747,8 +747,8 @@ class bbP_Pencil_Unread {
  *
  * @return The one true Instance
  */
-function bbp_pencil_unread() {
+function bbppu() {
 	return bbP_Pencil_Unread::instance();
 }
-bbp_pencil_unread();
+bbppu();
 ?>

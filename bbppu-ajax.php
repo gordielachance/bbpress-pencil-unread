@@ -8,7 +8,7 @@ function bbppu_ajax_mark_single_forum_as_read(){
     
     if( ! wp_verify_nonce( $_POST['_wpnonce'], 'bbpu_mark_read_single_forum_'.$forum_id ) ) return false;
     
-    echo (bool)bbp_pencil_unread()->mark_single_forum_as_read($forum_id);
+    echo (bool)bbppu()->mark_single_forum_as_read($forum_id);
     die();
 }
 

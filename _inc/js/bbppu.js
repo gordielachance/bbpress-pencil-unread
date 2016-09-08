@@ -1,6 +1,8 @@
 jQuery(document).ready(function($){
 
-    $('.bbppu-mark-as-read a').click(function(){
+    $('.bbppu-mark-as-read a').click(function(event){
+        
+        event.preventDefault();
         
         var link = $(this);
         var block = link.parent('.bbppu-mark-as-read');

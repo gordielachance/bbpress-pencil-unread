@@ -1,20 +1,12 @@
 === bbPress Pencil Unread ===
-
-Contributors: grosbouff 
-
-Tags: bbpress,unread,topics,forums,buddypress
-
+Contributors: grosbouff
+Tags: bbPress,unread,topics,forums,Buddypress
+Donate link: http://bit.ly/gbreant
 Requires at least: Wordpress 3, bbPress 2
-
-Tested up to: Wordpress 4.1, bbPress 2.5.4
-
+Tested up to: Wordpress 4.6.1, bbPress 2.5.10
 Stable tag: trunk
-
-License:GPLv2 or later
-
-Donate link:http://bit.ly/gbreant
-
-
+License: GPLv2 or later
+License URI: URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 bbPress Pencil Unread display which bbPress forums/topics have already been read by the user.
 
@@ -81,8 +73,11 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 == Changelog ==
 
 = XXX =
-* options sytem
-* option to choose if items created before first user's visit should be marked as read ('marked_read_before_first_visit') - https://wordpress.org/support/topic/old-topics-as-unread/
+* includes fontAwesome
+* loading icon : glyph instead of image
+* SCSS
+* options page
+* option to choose if items created before first user's visit should be marked as read ('test_registration_time') - https://wordpress.org/support/topic/old-topics-as-unread/
 
 = 1.1.1 =
 * Removed first forum visit stuff.  Remove old metas.  Now check users registration time.
