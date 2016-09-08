@@ -72,14 +72,15 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 
 == Changelog ==
 
-= XXX =
+= 1.2 =
 * SCSS
 * options page
 * option to choose if items created before first user's visit should be marked as read ('test_registration_time') - https://wordpress.org/support/topic/old-topics-as-unread/
-* includes fontAwesome
-* loading icon : glyph instead of image
+* includes fontAwesome (loading icon : glyph instead of image)
 * Improved function get_user_mark_as_read_link()
 * Improved function process_mark_as_read()
+* improved ajax and nonces checks
+* supports forums hierarchy
 
 = 1.1.1 =
 * Removed first forum visit stuff.  Remove old metas.  Now check users registration time.
