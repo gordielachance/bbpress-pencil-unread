@@ -119,6 +119,7 @@ class bbP_Pencil_Unread {
             //scripts & styles
             add_action('bbp_init', array($this, 'register_scripts_styles'));
             add_action('bbp_enqueue_scripts', array($this, 'scripts_styles'));
+            add_action('admin_enqueue_scripts', array($this, 'scripts_styles_admin'));
             
 	}
         
@@ -271,6 +272,21 @@ class bbP_Pencil_Unread {
             //STYLES
             wp_enqueue_style('font-awesome');
             wp_enqueue_style('bbppu');
+	}
+    
+    function is_bbppu_admin(){
+        $screen = get_current_screen();
+        if( $screen->id == 'settings_page_bbppu') return true;
+    }
+    
+	function scripts_styles_admin(){
+        
+            if ( !$this->is_bbppu_admin() ) return;
+	
+            //SCRIPTS
+
+            //STYLES
+            wp_enqueue_style('font-awesome');
 	}
 
     function mark_as_read_link( $args = array() ){
