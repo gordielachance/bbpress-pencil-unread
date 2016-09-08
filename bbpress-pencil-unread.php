@@ -180,7 +180,7 @@ class bbP_Pencil_Unread {
 	}
         
 	function logged_in_user_actions(){
-            
+
             if(!is_user_logged_in()) return false;
 
             //set classes for forums, topics, and subforums links.
@@ -203,9 +203,12 @@ class bbP_Pencil_Unread {
             add_action( 'save_post',array( $this, 'new_reply_backend' ) );
 
             //mark as read
-            //TO FIX should be rather hooked on bbp_template_before_single_forum ?
-            add_action('bbp_template_after_pagination_loop', array(&$this,"mark_as_read_single_forum_link"));   //generates "mark as read" link
-            add_action("wp", array(&$this,"process_mark_as_read_link"));    //process "mark as read" link
+            add_action( 'bbp_template_before_forums_index', array(&$this,'mark_as_read_link'));
+            add_action( 'bbp_template_before_single_forum', array(&$this,'mark_as_read_link'));
+        
+        
+        
+            add_action("wp", array(&$this,"process_mark_as_read"));    //process "mark as read" link
 	}
      
 	/**
@@ -268,44 +271,193 @@ class bbP_Pencil_Unread {
             wp_enqueue_style('font-awesome');
             wp_enqueue_style('bbppu');
 	}
+
+    function mark_as_read_link( $args = array() ){
+        echo $this->get_mark_as_read_link($args);
+    }
+    
+    function get_mark_as_read_link( $args = array() ){
+		// No link
+		$retval = false;
+
+		// Parse the arguments
+		$r = bbp_parse_args( $args, array(
+			'forum_id'    => 0,
+			'user_id'     => 0,
+			'before'      => '',
+			'after'       => ''
+		), 'bbppu_get_mark_as_read_link' );
+
+		// No link for categories until we support subscription hierarchy
+		// @see http://bbpress.trac.wordpress.org/ticket/2475
+		//if ( ! bbp_is_forum_category() ) {
+			$retval = $this->get_user_mark_as_read_link( $r );
+		//}
         
-	function mark_as_read_single_forum_link($forum_id=false){
-            if(!is_single()) return false;
-            if( get_post_type()!=bbp_get_forum_post_type() ) return false;
-            $url = get_permalink();
-            $forum_id = bbp_get_forum_id($forum_id);
-            $nonce_action = 'bbpu_mark_read_single_forum_'.$forum_id;
-            $nonce = wp_create_nonce($nonce_action);
-            $url = add_query_arg(array('action'=>'bbpu_mark_read'),$url);
-            $url = wp_nonce_url( $url,$nonce_action);
-            ?>
-            <div class="bbppu-mark-as-read">
-                    <a href="<?php echo $url;?>" data-nonce="<?php echo $nonce;?>" data-forum-id="<?php echo $forum_id;?>"><i class="bbppu-loading fa fa-circle-o-notch fa-spin fa-fw"></i><?php _e('Mark all as read','bbppu');?></a>
-            </div>
-            <?php
-	}
-	// processes the mark as read action
-	public function process_mark_as_read_link() {
-            global $post;
-            if( !isset( $_GET['action'] ) || $_GET['action'] != 'bbpu_mark_read' )return false;
-            if(is_single() && (get_post_type( $post->ID )==bbp_get_forum_post_type())){ //single forum
-                    $forum_id = bbp_get_forum_id($post->ID);
-                    if( ! wp_verify_nonce( $_GET['_wpnonce'], 'bbpu_mark_read_single_forum_'.$forum_id ) ) return false;
-                    self::mark_single_forum_as_read($forum_id);
-            }
-	}
-        
-        function get_marked_forums($user_id = null){
-            if (!$user_id) $user_id = get_current_user_id();
-            if (!$user_id) return false;
-            
-            return get_user_meta($user_id, 'bbppu_marked_forums',true);
-        }
-        
+        return $retval;
+    }
+    
+	function get_user_mark_as_read_link( $args = '', $user_id = 0, $wrap = true ) {
+
+		// Parse arguments against default values
+		$r = bbp_parse_args( $args, array(
+			'user_id'     => 0,
+			'topic_id'    => 0,
+			'forum_id'    => 0,
+			'before'      => '&nbsp;|&nbsp;',
+			'after'       => ''
+		), 'bbppu_get_user_mark_as_read_link' );
+
+		// Validate user and object ID's
+		$user_id  = bbp_get_user_id( $r['user_id'], true, true );
+		$topic_id = bbp_get_topic_id( $r['topic_id'] );
+		$forum_id = bbp_get_forum_id( $r['forum_id'] );
+		if ( empty( $user_id ) || ( empty( $topic_id ) && empty( $forum_id ) ) ) {
+			return false;
+		}
+
+		// No link if you can't edit yourself
         /*
-         * Marks forum as "read".
-         * Remove marks for descendants if any.
-         */
+		if ( ! current_user_can( 'edit_user', (int) $user_id ) ) {
+			return false;
+		}
+        */
+
+		// Check if viewing a single forum
+		if ( empty( $topic_id ) && ! empty( $forum_id ) ) {
+            
+            $show_link = true;
+            
+            
+            //this forum or its ancestor have been marked has read
+            if ( $forum_time_marked = self::get_forum_marked_time($forum_id,$user_id) ){
+                $last_active_time = bbp_convert_date(get_post_meta( $forum_id, '_bbp_last_active_time', true )); //get post last activity time
+                $show_link = ($last_active_time > $forum_time_marked);
+            }
+            
+            //if (!$show_link){ //no new activity since marked
+            //    $link_html = __('No new activity since you have marked this forum','bbppu');
+            //}else{
+                $text       = __('Mark all as read','bbppu');
+                $loading_icon = '<i class="bbppu-loading fa fa-circle-o-notch fa-spin fa-fw"></i>';
+            
+                $query_args = array( 
+                    'action' => 'bbpu_mark_read',
+                    'forum_id' => $forum_id 
+                );
+
+                // Create the link based where the user is and if the user is
+                // subscribed already
+                if ( bbp_is_subscriptions() ) {
+                    $permalink = bbp_get_subscriptions_permalink( $user_id );
+                } elseif ( bbp_is_single_forum() || bbp_is_single_reply() ) {
+                    $permalink = bbp_get_forum_permalink( $forum_id );
+                } else {
+                    $permalink = get_permalink();
+                }
+
+                $nonce_action = 'bbppu-mark-as-read_' . $forum_id;
+                $nonce = wp_create_nonce($nonce_action);
+                $url = add_query_arg( $query_args, $permalink );
+                $url = esc_url( wp_nonce_url( $url,$nonce_action) );
+
+                $link_html = sprintf('<a href="%s" data-forum="%d" data-nonce="%s">%s</a>',$url, $forum_id, $nonce, $loading_icon.$text);
+            //}
+            
+            $classes  = array('bbppu-mark-as-read');
+            $classes_str = bbppu_get_classes($classes);
+
+			$html = sprintf( '%s<span id="bbppu-mark-as-read-%d"  %s>%s</span>%s', $r['before'], $forum_id, $classes_str, $link_html, $r['after'] );
+
+			// Initial output is wrapped in a span, ajax output is hooked to this
+			if ( !empty( $wrap ) ) {
+				$html = '<span id="bbppu-mark-as-read">' . $html . '</span>';
+			}
+
+		} else {
+
+			// Decide which link to show
+			$is_subscribed = bbp_is_user_subscribed_to_topic( $user_id, $topic_id );
+			if ( ! empty( $is_subscribed ) ) {
+				$text       = $r['unsubscribe'];
+				$query_args = array( 'action' => 'bbp_unsubscribe', 'topic_id' => $topic_id );
+			} else {
+				$text       = $r['subscribe'];
+				$query_args = array( 'action' => 'bbp_subscribe',   'topic_id' => $topic_id );
+			}
+
+			// Create the link based where the user is and if the user is
+			// subscribed already
+			if ( bbp_is_subscriptions() ) {
+				$permalink = bbp_get_subscriptions_permalink( $user_id );
+			} elseif ( bbp_is_single_topic() || bbp_is_single_reply() ) {
+				$permalink = bbp_get_topic_permalink( $topic_id );
+			} else {
+				$permalink = get_permalink();
+			}
+
+			$url  = esc_url( wp_nonce_url( add_query_arg( $query_args, $permalink ), 'toggle-subscription_' . $topic_id ) );
+			$sub  = $is_subscribed ? ' class="is-subscribed"' : '';
+			$html = sprintf( '%s<span id="subscribe-%d"  %s><a href="%s" class="subscription-toggle" data-topic="%d">%s</a></span>%s', $r['before'], $topic_id, $sub, $url, $topic_id, $text, $r['after'] );
+
+			// Initial output is wrapped in a span, ajax output is hooked to this
+			if ( !empty( $wrap ) ) {
+				$html = '<span id="subscription-toggle">' . $html . '</span>';
+			}
+		}
+
+		// Return the link
+		return apply_filters( 'bbppu_get_user_mark_as_read_link', $html, $r, $user_id, $topic_id );
+	}
+    
+    function process_mark_as_read() {
+        
+        if( !isset( $_REQUEST['action'] ) || $_REQUEST['action'] != 'bbpu_mark_read' )return false;
+
+        // Bail if no forum ID is passed
+        if ( empty( $_REQUEST['forum_id'] ) ) {
+            return;
+        }
+
+        // Get required data
+        $user_id  = bbp_get_user_id( 0, true, true );
+        $forum_id = intval( $_REQUEST['forum_id'] );
+
+        // Check for empty forum
+        if ( empty( $forum_id ) ) {
+            bbp_add_error( 'bbppu_forum_id', __( '<strong>ERROR</strong>: No forum was found! Which forum are you marking as read ?', 'bbppu' ) );
+
+        // Check nonce
+        } elseif ( ! bbp_verify_nonce_request( 'bbppu-mark-as-read_' . $forum_id ) ) {
+            bbp_add_error( 'bbppu_forum_id', __( '<strong>ERROR</strong>: Are you sure you wanted to do that?', 'bbpress' ) );
+        }
+
+        // Bail if we have errors
+        if ( bbp_has_errors() ) {
+            return;
+        }
+
+        /** No errors *************************************************************/
+
+        $success = self::mark_single_forum_as_read($forum_id);
+
+        // Success!
+        if ( !$success ) {
+             bbp_add_error( 'bbppu_mark_forum_as_read', __( '<strong>ERROR</strong>: There was a problem marking this forum as read!', 'bbppu' ) );
+        }
+    }
+
+    function get_marked_forums($user_id = null){
+        if (!$user_id) $user_id = get_current_user_id();
+        if (!$user_id) return false;
+
+        return get_user_meta($user_id, 'bbppu_marked_forums',true);
+    }
+
+    /*
+     * Marks forum as "read".
+     * Remove marks for descendants if any.
+     */
         
 	public function mark_single_forum_as_read($forum_id) {
 
@@ -462,7 +614,7 @@ class bbP_Pencil_Unread {
             
             //validate user
             if(!$user_id) $user_id = get_current_user_id();
-            if ($user_meta !== get_userdata( $user_id )) return false;
+            if (!$user_meta = get_userdata( $user_id )) return false;
             
             //validate forum
             $forum_id = bbp_get_forum_id($forum_id);
@@ -751,4 +903,13 @@ function bbppu() {
 	return bbP_Pencil_Unread::instance();
 }
 bbppu();
+
+
+//https://bbpress.org/forums/topic/error-are-you-sure-you-wanted-to-do-that-3/
+add_filter( 'bbp_verify_nonce_request_url', 'my_bbp_verify_nonce_request_url', 999, 1 );
+function my_bbp_verify_nonce_request_url( $requested_url )
+{
+    return 'http://localhost:8888' . $_SERVER['REQUEST_URI'];
+}
+
 ?>
