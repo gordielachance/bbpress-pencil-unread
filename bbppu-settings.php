@@ -71,7 +71,7 @@ class bbP_Pencil_Unread_Settings {
 
         add_settings_field(
             'test_registration_time', 
-            __('Test registration date','bbppu'), 
+            __('Registration date check','bbppu'), 
             array( $this, 'test_registration_time_callback' ), 
             'bbppu-settings-page', // Page
             'settings_general'//section
@@ -104,11 +104,10 @@ class bbP_Pencil_Unread_Settings {
         $option = bbppu()->get_options('test_registration_time');
         
         printf(
-            '<input type="checkbox" name="%s[test_registration_time]" value="on" %s /> %s %s',
+            '<input type="checkbox" name="%s[test_registration_time]" value="on" %s /> %s',
             bbppu()->meta_name_options,
             checked( $option, 'on', false ),
-            __("Items older than the registration date of the user should be marked as read","bbppu"),
-            '— <small>'.sprintf(__('coucou','bbppu')).'</small>'
+            __("Items older than the registration date of the user should be marked as read.","bbppu")
         );
     }
 
@@ -127,8 +126,7 @@ class bbP_Pencil_Unread_Settings {
     //TO FIX TO CHECK, seems to be fired twice
     function review_rate_donate_notice(){
         
-        $screen = get_current_screen();
-        if( $screen->id != 'settings_page_bbppu') return;
+        if ( !bbppu()->is_bbppu_admin() ) return;
         
         $rate_link_wp = 'https://wordpress.org/support/view/plugin-reviews/bbpress-pencil-unread?rate#postform';
         $rate_link = '<a href="'.$rate_link_wp.'" target="_blank" href=""><i class="fa fa-star"></i> '.__('Reviewing the plugin','bbppu').'</a>';

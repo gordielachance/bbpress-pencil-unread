@@ -6,7 +6,7 @@ Requires at least: Wordpress 3, bbPress 2
 Tested up to: Wordpress 4.6.1, bbPress 2.5.10
 Stable tag: trunk
 License: GPLv2 or later
-License URI: URI: http://www.gnu.org/licenses/gpl-2.0.html
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 bbPress Pencil Unread display which bbPress forums/topics have already been read by the user.
 
