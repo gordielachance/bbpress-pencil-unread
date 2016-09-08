@@ -262,6 +262,7 @@ class bbP_Pencil_Unread {
 
             //localize vars
             $localize_vars=array();
+            $localize_vars['ajaxurl']=admin_url( 'admin-ajax.php' );
             $localize_vars['marked_as_read']=__('Marked as read','bbppu');
 
 
@@ -426,10 +427,14 @@ class bbP_Pencil_Unread {
         // Check for empty forum
         if ( empty( $forum_id ) ) {
             bbp_add_error( 'bbppu_forum_id', __( '<strong>ERROR</strong>: No forum was found! Which forum are you marking as read ?', 'bbppu' ) );
-
-        // Check nonce
-        } elseif ( ! bbp_verify_nonce_request( 'bbppu-mark-as-read_' . $forum_id ) ) {
-            bbp_add_error( 'bbppu_forum_id', __( '<strong>ERROR</strong>: Are you sure you wanted to do that?', 'bbpress' ) );
+            
+        } else{
+            
+            $nonce_action = 'bbppu-mark-as-read_' . $forum_id;
+            
+            if( !wp_verify_nonce( $_REQUEST['_wpnonce'], $nonce_action ) ){
+                bbp_add_error( 'bbppu_forum_id', __( '<strong>ERROR</strong>: Are you sure you wanted to do that?', 'bbpress' ) );
+            }
         }
 
         // Bail if we have errors
@@ -553,19 +558,21 @@ class bbP_Pencil_Unread {
 	}
         
 	function new_reply_backend($post_id){
+        
+            if ( !is_admin() ) return;
+        
             // Bail if doing an autosave
-            if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
-                            return $post_id;
+            if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return $post_id;
             // Bail if not a post request
-            if ( 'POST' != strtoupper( $_SERVER['REQUEST_METHOD'] ) )
-                            return $post_id;
+            if ( 'POST' != strtoupper( $_SERVER['REQUEST_METHOD'] ) ) return $post_id;
+        
             // Bail if post_type do not match
-            if (get_post_type( $post_id )!=bbp_get_reply_post_type())
-                            return;
+            if (get_post_type( $post_id )!=bbp_get_reply_post_type()) return;
+        
             // Bail if current user cannot edit this post
             $post_obj = get_post_type_object( get_post_type( $post_id ) ); 
-            if ( !current_user_can( $post_obj->cap->edit_post, $post_id ) )
-                            return $post_id;
+            if ( !current_user_can( $post_obj->cap->edit_post, $post_id ) ) return $post_id;
+        
             $reply_id = bbp_get_reply_id($post_id);
                     
             if (isset($_POST['post_parent']))
@@ -666,6 +673,11 @@ class bbP_Pencil_Unread {
             if(!$user_id) $user_id = get_current_user_id();
             if (!get_userdata( $user_id )) return false;
             
+            //no marks for this user
+            if ( !$usermarks = self::get_marked_forums($user_id) ) return;
+            
+            $ancestormarks = array();
+
             //get forum ID
             $forum_id  = self::get_forum_id_for_post( $post_id );
             
@@ -674,18 +686,15 @@ class bbP_Pencil_Unread {
             if ($include_ancestors){  //check whole ancestors tree
                 $ids_to_check = array_merge( bbp_get_forum_ancestors( $forum_id ), $ids_to_check);
             }
-            
-            if ( !$usermarks = self::get_marked_forums($user_id) ) return;
 
-            //remove marked forums ids
-            foreach ( $usermarks as $forum_id => $forum_mark ){
-                if ( !in_array($forum_id, $ids_to_check) ) unset($usermarks[$forum_id]);
+            foreach ( $usermarks as $marked_id => $marked_time ){
+                if ( in_array($marked_id, $ids_to_check) ) $ancestormarks[$marked_id] = $marked_time;
             }
 
-            if (empty($usermarks)) {
+            if (empty($ancestormarks)) {
                 return false;
             }else{
-                return max($usermarks); //get last mark
+                return max($ancestormarks); //get last mark
             }
 
         }
@@ -903,13 +912,5 @@ function bbppu() {
 	return bbP_Pencil_Unread::instance();
 }
 bbppu();
-
-
-//https://bbpress.org/forums/topic/error-are-you-sure-you-wanted-to-do-that-3/
-add_filter( 'bbp_verify_nonce_request_url', 'my_bbp_verify_nonce_request_url', 999, 1 );
-function my_bbp_verify_nonce_request_url( $requested_url )
-{
-    return 'http://localhost:8888' . $_SERVER['REQUEST_URI'];
-}
 
 ?>

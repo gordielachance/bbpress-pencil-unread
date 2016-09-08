@@ -21,22 +21,30 @@ jQuery(document).ready(function($){
 
         if(link.hasClass('loading')) return false;
         
+        ajax_data.action='bbppu_mark_single_forum_as_read';
         ajax_data._wpnonce=link.data("nonce");
         ajax_data.forum_id=link.data("forum");
-        ajax_data.action='bbppu-mark-as-read_' + ajax_data.forum_id;
 
         $.ajax({
     
-            type: "post",url: ajaxurl,data:ajax_data,
+            type:       "post",
+            url:        bbppuL10n.ajaxurl,
+            data:       ajax_data,
+            dataType:   'json',
             beforeSend: function() {
                 link.addClass('loading');
             },
-            success: function(result){
-                if(result){
+            success: function(data){
+
+                if (data.success === false) {
+                    link.addClass('bbppu-error');
+                    console.log(data);
+                }else if (data.success === true) {
                     block.html(bbppuL10n.marked_as_read);
-                    var topics = $('.bbp-body .hentry.topic');
-                    topics.removeClass('bbppu-unread').addClass('bbppu-read');
+                    var items = $('#forums-list-'+ajax_data.forum_id+' .bbppu-hentry, #bbp-forum-'+ajax_data.forum_id+' .bbppu-hentry');
+                    items.removeClass('bbppu-unread').addClass('bbppu-read');
                 }
+
             },
             error: function (xhr, ajaxOptions, thrownError) {
                 console.log(xhr.status);
