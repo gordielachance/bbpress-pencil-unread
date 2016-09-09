@@ -697,7 +697,7 @@ class bbP_Pencil_Unread {
             if(!$user_id) $user_id = get_current_user_id();
             if(!$user_id) return true;
             
-            //count topics
+            //count topics - check bbPress function bbp_has_topics()
             
             $topics_args = array(
                 'post_type' => bbp_get_topic_post_type(),
@@ -705,6 +705,22 @@ class bbP_Pencil_Unread {
                 'posts_per_page' => -1
                 
             );
+            
+            // Default view=all statuses
+            $post_statuses = array(
+                bbp_get_public_status_id(),
+                bbp_get_closed_status_id(),
+                //bbp_get_spam_status_id(),
+                //bbp_get_trash_status_id()
+            );
+
+            // Add support for private status
+            if ( current_user_can( 'read_private_topics' ) ) {
+                $post_statuses[] = bbp_get_private_status_id();
+            }
+
+            // Join post statuses together
+            $topics_args['post_status'] = implode( ',', $post_statuses );
             
             $topics_query = new WP_Query( $topics_args );
             $topics_total = $topics_query->found_posts;
