@@ -709,7 +709,7 @@ class bbP_Pencil_Unread {
             // Default view=all statuses
             $post_statuses = array(
                 bbp_get_public_status_id(),
-                bbp_get_closed_status_id(),
+                bbp_get_closed_status_id()
                 //bbp_get_spam_status_id(),
                 //bbp_get_trash_status_id()
             );
