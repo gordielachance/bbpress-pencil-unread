@@ -48,7 +48,7 @@ Styling has been setup for the bbPress default theme.
 If it doesn't work for you, please try to check/override our CSS styles (bbppu.css)
 
 = How can I get it in my language ? =
-If it hasn't been done already, you can translate your plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
+If it hasn't been done already, you can translate the plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
 
 = How does it work? =
 
@@ -80,6 +80,7 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 == Changelog ==
 
 = 1.2.2 =
+* Do not show 'Mark as read' link if no activity since last marked.
 * fixed localization + french translation
 * stylesheet : RTL support
 * code cleanup

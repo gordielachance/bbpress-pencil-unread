@@ -334,18 +334,19 @@ class bbP_Pencil_Unread {
 		// Check if viewing a single forum
 		if ( empty( $topic_id ) && ! empty( $forum_id ) ) {
             
-            $show_link = true;
+            $new_activity = true;
             
             
             //this forum or its ancestor have been marked has read
             if ( $forum_time_marked = self::get_forum_marked_time($forum_id,$user_id) ){
                 $last_active_time = bbp_convert_date(get_post_meta( $forum_id, '_bbp_last_active_time', true )); //get post last activity time
-                $show_link = ($last_active_time > $forum_time_marked);
+                $new_activity = ($last_active_time > $forum_time_marked);
             }
             
-            //if (!$show_link){ //no new activity since marked
-            //    $link_html = __('No new activity since you have marked this forum','bbppu');
-            //}else{
+            if (!$new_activity){ //no new activity since marked
+                //$link_html = __('Marked as read','bbppu') . sprintf('<small> (%s, %s)</small>',date_i18n(get_option( 'date_format' ),$forum_time_marked),date_i18n(get_option( 'time_format' ),$forum_time_marked));
+                $link_html = __('Marked as read','bbppu');
+            }else{
                 $text       = __('Mark all as read','bbppu');
                 $loading_icon = '<i class="bbppu-loading fa fa-circle-o-notch fa-spin fa-fw"></i>';
             
@@ -370,7 +371,7 @@ class bbP_Pencil_Unread {
                 $url = esc_url( wp_nonce_url( $url,$nonce_action) );
 
                 $link_html = sprintf('<a href="%s" data-forum="%d" data-nonce="%s">%s</a>',$url, $forum_id, $nonce, $loading_icon.$text);
-            //}
+            }
             
             $classes  = array('bbppu-mark-as-read');
             $classes_str = bbppu_get_classes($classes);
