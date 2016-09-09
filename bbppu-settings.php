@@ -58,7 +58,7 @@ class bbP_Pencil_Unread_Settings {
 
         register_setting(
             'bbppu_option_group', // Option group
-            bbppu()->meta_name_options, // Option name
+            bbppu()->options_metaname, // Option name
             array( $this, 'settings_sanitize' ) // Sanitize
          );
         
@@ -105,7 +105,7 @@ class bbP_Pencil_Unread_Settings {
         
         printf(
             '<input type="checkbox" name="%s[test_registration_time]" value="on" %s /> %s',
-            bbppu()->meta_name_options,
+            bbppu()->options_metaname,
             checked( $option, 'on', false ),
             __("Items older than the registration date of the user should be marked as read.","bbppu")
         );
@@ -118,7 +118,7 @@ class bbP_Pencil_Unread_Settings {
     function reset_options_callback(){
         printf(
             '<input type="checkbox" name="%1$s[reset_options]" value="on"/> %2$s',
-            bbppu()->meta_name_options, // Option name
+            bbppu()->options_metaname, // Option name
             __("Reset options to their default values.","bbppu")
         );
     }
@@ -133,7 +133,7 @@ class bbP_Pencil_Unread_Settings {
         $donate_link = '<a href="http://bit.ly/gbreant" target="_blank" href=""><i class="fa fa-usd"></i> '.__('make a donation','bbppu').'</a>';
         
         add_settings_error('bbppu_option_group', 'review_rate_donate', 
-            sprintf(__('Happy with this plugin ? %s and %s would help!','pinim'),$rate_link,$donate_link)
+            sprintf(__('Happy with this plugin ? %s and %s would help!','bbppu'),$rate_link,$donate_link)
         );
     }
 

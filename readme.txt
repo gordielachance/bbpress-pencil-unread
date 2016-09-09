@@ -18,9 +18,8 @@ bbPress Pencil Unread display which bbPress forums/topics have already been read
 Compatible with BuddyPress Groups Forums feature.
 
 *   For **forums**, it checks if the user has visited the forum since it was last active.
+*   It also displays a link above each forum to mark it as 'read'.
 *   For **topics**, it checks if the user opened the topic since it was last active.
-
-It also allows to set all topics of a forum as read.
 
 = Contributors =
 
@@ -48,16 +47,24 @@ Extract the zip file and just drop the contents in the wp-content/plugins/ direc
 Styling has been setup for the bbPress default theme.  
 If it doesn't work for you, please try to check/override our CSS styles (bbppu.css)
 
+= How can I get it in my language ? =
+If it hasn't been done already, you can translate your plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
+
 = How does it work? =
 
 *bbPress Pencil Unread* handles differently the way forums & topics are set as read.
 
-*   For **topics**, the ID of each visitor having read the topic is is stored in *bbppu_read_by* (posts metas table) when the topic is opened.  When a new reply is added, the IDs of the users having already read the topic are deleted.
-*   For **forums**, the time of each forum's last access by the user is stored in *bbppu_forums_visits* (users metas table) on forum visits, and compared to the forum last activity time. This means a forum will be set as "read" if the user has visited the forum page, and even if some topics inside have not been read (but they will remain listed as non read topics when displaying the forum).
+*   For **forums**, the time of each forum's last access by the user is stored in *bbppu_forums_visits* (usermeta) on forum visits, and compared to the forum last activity time. This means a forum will be set as "read" if the user **has visited the forum page, and even if some topics inside have not been read** (but they will remain listed as non read topics when displaying the forum).
+
+*  Marking a forum (*Mark all as read*) adds an entry with the forum ID and timestamp in *bbppu_marked_forums* (usermeta).  When determining if a topic has been read, we check if the topic's forum (or ancestors) has a mark more recent than the topic time.
+
+* Marking a forum will only set the topics from this forum as read.  If there is **super sticky topics** displayed and that they belong to other forums, they will not be marked as read.
+
+*   To avoid that a forum would be set set as 'unread' after a user **posts a new topic or reply**; we check the forum status (if it was read or not) before posting the topic or reply.  If the forum was set to read, we'll keep that status.
+
+*   For **topics**, the ID of each visitor having read the topic is is stored in *bbppu_read_by* (postmeta) when the topic is opened.  When a new reply is added, the IDs of the users having already read the topic are deleted.
  
 It's working that way to avoid having too much database calls / data stored.
-
-*   To avoid that a forum would be set set as 'unread' after a user **posts a new topic or reply**; we check the forum status (if it was read or not) before posting the topic or reply.  If the forum was set to read, we'll keep that !
 
 = How can I use those functions outside of the plugin ? =
 
@@ -71,6 +78,15 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 
 
 == Changelog ==
+
+= 1.2.2 =
+* fixed localization + french translation
+* stylesheet : RTL support
+* code cleanup
+* jQuery : when marking a forum as read, give the 'bbppu-read' class only to the topics of that forum (super sticky topics could be from another forum so they should remain unread)
+
+= 1.2.1 =
+* bug fixes : https://wordpress.org/support/topic/just-upgraded-to-v-1-2-errors/
 
 = 1.2 =
 * SCSS
