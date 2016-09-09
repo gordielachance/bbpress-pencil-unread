@@ -21,7 +21,7 @@ class bbP_Pencil_Unread {
 	/**
 	 * @public string plugin DB version
 	 */
-	public $db_version = '106';
+	public $db_version = '107';
 	
 	/** Paths *****************************************************************/
 	
@@ -45,7 +45,7 @@ class bbP_Pencil_Unread {
 	 * meta keys
 	 */
     public $options_metaname = 'bbppu_options'; // plugin's options (stored in wp_options) 
-	public $topic_read_metaname = 'bbppu_read_by'; // contains an array of user IDs having read that post (stored in postmeta) 
+	public $topic_readby_metaname = 'bbppu_read_by'; // contains an array of user IDs having read that post (stored in postmeta) 
     public $forums_visits_metaname = 'bbppu_forums_visits'; // contains an array of the user's last visits timestamps for forums (stored in usermeta) 
     public $marked_forums_metaname = 'bbppu_marked_forums'; // contains an array of 'marked as read' timestamps for forums (stored in usermeta) 
         
@@ -130,17 +130,35 @@ class bbP_Pencil_Unread {
         
 	function upgrade(){
 		global $wpdb;
-		
+ 
 		$version_db_key = 'bbppu-db-version';
 		
 		$current_version = get_option($version_db_key);
 
 		if ($current_version==$this->db_version) return false;
-		
+
 		if(!$current_version){  //install
 			//require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 			//dbDelta($sql);
 		}else{  //upgrade
+            
+                    if ( $current_version < 107){
+
+                        $rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM $wpdb->postmeta WHERE meta_key = '%s'",$this->topic_readby_metaname));
+                        
+                        //remove old metas (unique arrays of IDs)
+                        $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = %s",$this->topic_readby_metaname) );
+                        
+                        //create new metas (one meta per user ID)
+                        foreach((array)$rows as $row){
+                            $post_id = $row->post_id;
+                            $user_ids = maybe_unserialize($row->meta_value);
+                            
+                            foreach($user_ids as $user_id){
+                                add_post_meta($post_id,$this->topic_readby_metaname,$user_id);
+                            }
+                        }
+                    }
                     
                     if ( $current_version < 105){
                         
@@ -516,9 +534,6 @@ class bbP_Pencil_Unread {
 	 */
 	
 	function new_topic($topic_id, $forum_id, $anonymous_data=false, $topic_author=false){
-            //delete metas for users who had that post read
-            $this->update_topic_read_by($topic_id,$topic_author,true);
-
             if($this->forum_was_read_before_new_post){
                     self::update_forum_visit_for_user($forum_id,$topic_author);
             }
@@ -557,7 +572,8 @@ class bbP_Pencil_Unread {
          */
 	function new_reply($reply_id, $topic_id, $forum_id, $anonymous_data=false, $reply_author=false){
             //delete metas for users who had that post read
-            $this->update_topic_read_by($topic_id,$reply_author,true);
+            $this->reset_topic_read_by($topic_id,$reply_author);
+            $this->update_topic_read_by($topic_id,$reply_author);
 
             if($this->forum_was_read_before_new_post){
                     self::update_forum_visit_for_user($forum_id,$reply_author);
@@ -583,10 +599,9 @@ class bbP_Pencil_Unread {
         
             $reply_id = bbp_get_reply_id($post_id);
                     
-            if (isset($_POST['post_parent']))
-                    $topic_id = bbp_get_topic_id($_POST['post_parent']);
-            if (isset($_POST['bbp_forum_id']))
-                    $forum_id = bbp_get_forum_id($_POST['bbp_forum_id']);
+            if (isset($_POST['post_parent'])) $topic_id = bbp_get_topic_id($_POST['post_parent']);
+            if (isset($_POST['bbp_forum_id'])) $forum_id = bbp_get_forum_id($_POST['bbp_forum_id']);
+        
             $this->new_reply($reply_id,$topic_id,$forum_id);
 	}
 	
@@ -595,29 +610,30 @@ class bbP_Pencil_Unread {
             if (get_post_type( )!=bbp_get_topic_post_type()) return false;
             return $this->update_topic_read_by();
 	}
-	function update_topic_read_by($topic_id=false,$user_id=false,$reset=false){
+    
+    function reset_topic_read_by($topic_id=false){
+            //get topic id (even if it's a reply)
+            $topic_id = bbp_get_topic_id($topic_id);
+            return delete_post_meta($topic_id, $this->topic_readby_metaname);
+    }
+    
+	function update_topic_read_by($topic_id=false,$user_id=false){
             
             //validate user
             if(!$user_id) $user_id = get_current_user_id();
             if (!get_userdata( $user_id )) return false;
 
-            $read_by_uid = array($user_id);
-            
             //get topic id (even if it's a reply)
             $topic_id = bbp_get_topic_id($topic_id);
-            
+        
+            $read_by = $this->get_topic_readers($topic_id);
+        
             //check topic
             if (get_post_type( $topic_id )!=bbp_get_topic_post_type()) return false;
-            
-            $readers = (array)self::get_topic_readers($topic_id);
-            
-            //if reset is not enabled, clone previous readers.
-            if( (!$reset) && ( false !== $readers ) ){
-                    $read_by_uid = array_merge($readers,$read_by_uid);
-                    $read_by_uid = array_unique($read_by_uid);//remove duplicates
-            }
+        
+            if ( in_array($user_id,$read_by) ) return true; //already set
 
-            return update_post_meta( $topic_id, $this->topic_read_metaname, $read_by_uid );
+            return add_post_meta( $topic_id, $this->topic_readby_metaname, $user_id );
 	}
 	/**
 	* Get the time of the last visit of the user for each forum.
@@ -836,8 +852,8 @@ class bbP_Pencil_Unread {
          */
         
         function get_topic_readers($topic_id){
-            if (!metadata_exists('post',$topic_id,$this->topic_read_metaname)) return false;
-            $user_ids = get_post_meta($topic_id,$this->topic_read_metaname,true);
+            if (!metadata_exists('post',$topic_id,$this->topic_readby_metaname)) return false;
+            $user_ids = get_post_meta($topic_id,$this->topic_readby_metaname);
             return (array)$user_ids;
         }
 
