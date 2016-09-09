@@ -90,7 +90,8 @@ class bbP_Pencil_Unread {
 		$this->plugin_url = plugin_dir_url ( $this->file );
         
         $this->options_default = array(
-            'test_registration_time'                => 'on' //all items dated befoe user's first visit
+            'test_registration_time'                => 'on', //all items dated befoe user's first visit
+            'count_topics_transient_duration'       => 5
         );
         
         $this->options = wp_parse_args(get_option( $this->options_metaname), $this->options_default);
@@ -691,68 +692,70 @@ class bbP_Pencil_Unread {
         }
     
         function has_user_read_all_forum_topics( $forum_id,$user_id=false ){
-            
-            //TO FIX : use a transient to limit queries ?  It could last a few seconds.
-            
+
             if(!$user_id) $user_id = get_current_user_id();
             if(!$user_id) return true;
             
-            //count topics - check bbPress function bbp_has_topics()
+            $debug_transient_message = ' (from cache)';
+            $transient_name = sprintf('bbppu_user_%s_read_forum_%s',$user_id,$forum_id);
             
-            $topics_args = array(
-                'post_type' => bbp_get_topic_post_type(),
-                'post_parent' => $forum_id,
-                'posts_per_page' => -1
+            if ( false === ( $has_read = get_transient( $transient_name ) ) ) {
                 
-            );
+                $debug_transient_message = '';
             
-            // Default view=all statuses
-            $post_statuses = array(
-                bbp_get_public_status_id(),
-                bbp_get_closed_status_id()
-                //bbp_get_spam_status_id(),
-                //bbp_get_trash_status_id()
-            );
+                //count topics - check bbPress function bbp_has_topics()
 
-            // Add support for private status
-            if ( current_user_can( 'read_private_topics' ) ) {
-                $post_statuses[] = bbp_get_private_status_id();
-            }
+                $topics_args = array(
+                    'post_type' => bbp_get_topic_post_type(),
+                    'post_parent' => $forum_id,
+                    'posts_per_page' => -1
 
-            // Join post statuses together
-            $topics_args['post_status'] = implode( ',', $post_statuses );
-            
-            $topics_query = new WP_Query( $topics_args );
-            $topics_total = $topics_query->found_posts;
-            
-            //count read topics
-            
-            $read_topics_args = array(
-                'meta_query' => array(
-                    array(
-                        'key' => $this->topic_readby_metaname,
-                        'value' => $user_id,
+                );
+
+                // Default view=all statuses
+                $post_statuses = array(
+                    bbp_get_public_status_id(),
+                    bbp_get_closed_status_id()
+                    //bbp_get_spam_status_id(),
+                    //bbp_get_trash_status_id()
+                );
+
+                // Add support for private status
+                if ( current_user_can( 'read_private_topics' ) ) {
+                    $post_statuses[] = bbp_get_private_status_id();
+                }
+
+                // Join post statuses together
+                $topics_args['post_status'] = implode( ',', $post_statuses );
+
+                $topics_query = new WP_Query( $topics_args );
+                $topics_total = $topics_query->found_posts;
+
+                //count read topics
+
+                $read_topics_args = array(
+                    'meta_query' => array(
+                        array(
+                            'key' => $this->topic_readby_metaname,
+                            'value' => $user_id,
+                        )
                     )
-                )
-            );
-            
-            $read_topics_args = array_merge($topics_args,$read_topics_args);
-            
-            $read_topics_query = new WP_Query($read_topics_args);
-            $read_topics_total = $read_topics_query->found_posts;
-            
-            $has_read = ($read_topics_total == $topics_total);
-            /*
-            if ($forum_id == 3103){
-                print_r($topics_query->posts);
-                echo"<br/>";
-                print_r($read_topics_query->posts);
-                die();
+                );
+
+                $read_topics_args = array_merge($topics_args,$read_topics_args);
+
+                $read_topics_query = new WP_Query($read_topics_args);
+                $read_topics_total = $read_topics_query->found_posts;
+
+                $has_read = (int)($read_topics_total == $topics_total);
+                
+                //store for a few seconds
+                set_transient( $transient_name, $has_read, $this->get_options('count_topics_transient_duration') );
+
             }
-            */
             
-            
-            self::debug_log('user#'.$user_id.' has_user_read_all_forum_topics#'.$forum_id.' : '.(int)$has_read);
+            $debug_message = sprintf('user#%s has real all topics from forum#%s : %s',$user_id,$forum_id,$has_read).$debug_transient_message;
+            self::debug_log($debug_message);
             
             return $has_read;
 
@@ -779,7 +782,7 @@ class bbP_Pencil_Unread {
             if ( (!$has_read) && ( $this->get_options('test_registration_time') == 'on' ) && ( $first_visit = $user_meta->user_registered ) ){
                 $has_read = ($last_active_time <= $first_visit);
             }
-            
+
             //check 'mark as read' for this forum or ancestors
             if ((!$has_read) && ($forum_time_marked = self::get_forum_marked_time($post_id,$user_id))){
                 $has_read = ($last_active_time <= $forum_time_marked);
