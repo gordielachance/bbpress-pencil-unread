@@ -129,7 +129,7 @@ class bbP_Pencil_Unread_Settings {
         if ( !bbppu()->is_bbppu_admin() ) return;
         
         $rate_link_wp = 'https://wordpress.org/support/view/plugin-reviews/bbpress-pencil-unread?rate#postform';
-        $rate_link = '<a href="'.$rate_link_wp.'" target="_blank" href=""><i class="fa fa-star"></i> '.__('Reviewing the plugin','bbppu').'</a>';
+        $rate_link = '<a href="'.$rate_link_wp.'" target="_blank" href=""><i class="fa fa-star"></i> '.__('Reviewing it','bbppu').'</a>';
         $donate_link = '<a href="http://bit.ly/gbreant" target="_blank" href=""><i class="fa fa-usd"></i> '.__('make a donation','bbppu').'</a>';
         
         add_settings_error('bbppu_option_group', 'review_rate_donate', 

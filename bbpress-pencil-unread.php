@@ -3,7 +3,7 @@
 Plugin Name: bbPress Pencil Unread
 Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
 Description: Display which bbPress forums/topics have already been read by the user.
-Version: 1.2
+Version: 1.2.1
 Author: G.Breant
 Author URI: http://sandbox.pencil2d.org/
 Text Domain: bbppu
@@ -16,7 +16,7 @@ class bbP_Pencil_Unread {
         /**
 	 * @public string plugin version
 	 */
-	public $version = '1.2';
+	public $version = '1.2.1';
         
 	/**
 	 * @public string plugin DB version
@@ -135,7 +135,6 @@ class bbP_Pencil_Unread {
 		$current_version = get_option($version_db_key);
 
 		if ($current_version==$this->db_version) return false;
-			
 		
 		if(!$current_version){  //install
 			//require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -145,15 +144,7 @@ class bbP_Pencil_Unread {
                     if ( $current_version < 105){
                         
                         //remove 'bbppu_first_visit' usermetas
-                        
-                        $wpdb->query( 
-                            $wpdb->prepare( 
-                                "
-                                DELETE FROM $wpdb->usermeta
-                                WHERE meta_key = `bbppu_first_visit`
-                                "
-                                )
-                        );
+                        $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->usermeta WHERE meta_key = %s",'bbppu_first_visit') );
                         
                         //convert old "bbppu_marked_forum_XXX" user meta keys to a global "bbppu_marked_forums" key.
                         
@@ -846,12 +837,15 @@ class bbP_Pencil_Unread {
         }
 
         
-       //filter list forums to add classes to the subforums links.
+        //TO FIX
+        //filter list forums to add classes to the subforums links.
         //this is a really nasty hack. 
         //Should be fixed when bbpress fix this ticket :
-        //https://bbpress.trac.wordpress.org/ticket/2759#ticket
+        //https://bbpress.trac.wordpress.org/ticket/2760#ticket
         
         function list_forums_class($output,$args){
+            
+            if ( empty( $output ) ) return $output;
             
             //remove filter to avoid infinite loop
             remove_filter( 'bbp_list_forums', array(&$this,"list_forums_class"), 10 );
@@ -859,7 +853,7 @@ class bbP_Pencil_Unread {
             //get sub forums
             $sub_forums = bbp_forum_get_subforums( $args['forum_id'] );
             $sub_forums_links = array();
-            foreach($sub_forums as $sub_forum){
+            foreach( (array)$sub_forums as $sub_forum){
                 $sub_forums_links[$sub_forum->ID] = bbp_get_forum_permalink( $sub_forum->ID );
             }
             
@@ -870,7 +864,7 @@ class bbP_Pencil_Unread {
             $classname="bbp-forum-link";
             $forum_link_nodes = $finder->query("//*[contains(@class, '$classname')]");
             
-            foreach ($forum_link_nodes as $forum_link_node) {
+            foreach ( (array)$forum_link_nodes as $forum_link_node) {
                 $forum_link = $forum_link_node->getAttribute('href');
                 $forum_id = array_search($forum_link, $sub_forums_links);
                 if ($forum_id){
@@ -881,7 +875,7 @@ class bbP_Pencil_Unread {
                 }
                 
             }
-            
+
             //re-add filter
             add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
             
