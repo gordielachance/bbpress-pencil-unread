@@ -47,6 +47,8 @@ class bbP_Pencil_Unread {
     public $options_metaname = 'bbppu_options'; // plugin's options (stored in wp_options) 
 	public $topic_readby_metaname = 'bbppu_read_by'; // contains an array of user IDs having read that post (stored in postmeta)
     public $marked_forums_metaname = 'bbppu_marked_forums'; // contains an array of 'marked as read' timestamps for forums (stored in usermeta) 
+    
+    public $qvar = 'bbppu';
         
 	/**
          * When creating a new post (topic/reply), set this var to true or false
@@ -142,29 +144,6 @@ class bbP_Pencil_Unread {
 			//dbDelta($sql);
 		}else{  //upgrade
             
-                    if ( $current_version < 107){
-
-                        $rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM $wpdb->postmeta WHERE meta_key = '%s'",$this->topic_readby_metaname));
-                        
-                        //remove old metas (unique arrays of IDs)
-                        $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = %s",$this->topic_readby_metaname) );
-                        
-                        //create new metas (one meta per user ID)
-                        foreach((array)$rows as $row){
-                            $post_id = $row->post_id;
-                            $user_ids = maybe_unserialize($row->meta_value);
-                            
-                            foreach((array)$user_ids as $user_id){
-                                add_post_meta($post_id,$this->topic_readby_metaname,$user_id);
-                            }
-                        }
-                        
-                        //remove 'bbppu_first_visit' usermetas
-                        $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->usermeta WHERE meta_key = %s",'bbppu_forums_visits') );
-                        
-                        
-                    }
-                    
                     if ( $current_version < 105){
                         
                         //remove 'bbppu_first_visit' usermetas
@@ -189,6 +168,31 @@ class bbP_Pencil_Unread {
                             }
                         }
                     }
+            
+                    if ( $current_version < 107){
+
+                        $rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM $wpdb->postmeta WHERE meta_key = '%s'",$this->topic_readby_metaname));
+                        
+                        //remove old metas (unique arrays of IDs)
+                        $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = %s",$this->topic_readby_metaname) );
+                        
+                        //create new metas (one meta per user ID)
+                        foreach((array)$rows as $row){
+                            $post_id = $row->post_id;
+                            $user_ids = maybe_unserialize($row->meta_value);
+                            
+                            foreach((array)$user_ids as $user_id){
+                                add_post_meta($post_id,$this->topic_readby_metaname,$user_id);
+                            }
+                        }
+                        
+                        //remove 'bbppu_first_visit' usermetas
+                        $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->usermeta WHERE meta_key = %s",'bbppu_forums_visits') );
+                        
+                        
+                    }
+                    
+            
                 }
 
 		//update DB version
@@ -198,6 +202,8 @@ class bbP_Pencil_Unread {
 	function logged_in_user_actions(){
 
             if(!is_user_logged_in()) return false;
+        
+            
 
             //set classes for forums, topics, and subforums links.
             add_filter('bbp_get_forum_class', array(&$this,"post_status_class"),10,2);
@@ -219,11 +225,51 @@ class bbP_Pencil_Unread {
             //mark as read
             add_action( 'bbp_template_before_forums_index', array(&$this,'mark_as_read_link'));
             add_action( 'bbp_template_before_single_forum', array(&$this,'mark_as_read_link'));
-        
-        
-        
             add_action("wp", array(&$this,"process_mark_as_read"));    //process "mark as read" link
+        
+            //queries
+            add_filter('query_vars', array(&$this,'register_query_vars' ));
+            add_action( 'pre_get_posts', array($this, 'filter_query'));
 	}
+    
+    function register_query_vars($vars) {
+        $vars[] = $this->qvar;
+        return $vars;
+    }
+    
+    function filter_query( $query ){
+        
+        if ( ( $query_var = $query->get( $this->qvar ) ) && ( $user_id = get_current_user_id() ) ){
+            
+            $meta_query = $query->get('meta_query');
+            
+            switch($query_var){
+                case 'read':
+                    
+                    $meta_query[] = array(
+                      'key' => $this->topic_readby_metaname,
+                      'value' => $user_id,
+                      'compare' => '=',
+                    );
+                    
+                break;
+                case 'unread':
+                    
+                    $meta_query[] = array(
+                      'key' => $this->topic_readby_metaname,
+                      'value' => $user_id,
+                      'compare' => '!=',
+                    );
+                    
+                break;
+            }
+            
+            $query->set('meta_query', $meta_query);
+            
+        }
+        return $query;
+        
+    }
 
 	function register_scripts_styles(){
             wp_register_style('font-awesome', '//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css',false,'4.3.0');
@@ -732,14 +778,8 @@ class bbP_Pencil_Unread {
                 $topics_total = $topics_query->found_posts;
 
                 //count read topics
-
                 $read_topics_args = array(
-                    'meta_query' => array(
-                        array(
-                            'key' => $this->topic_readby_metaname,
-                            'value' => $user_id,
-                        )
-                    )
+                    $this->qvar => 'read'
                 );
 
                 $read_topics_args = array_merge($topics_args,$read_topics_args);
