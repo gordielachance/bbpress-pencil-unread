@@ -50,21 +50,34 @@ If it doesn't work for you, please try to check/override our CSS styles (bbppu.c
 = How can I get it in my language ? =
 If it hasn't been done already, you can translate the plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
 
+= How can I filter topics to display only the unread or read ones ? =
+Just add the **bbppu** arg to your [Wordpress queries](https://fr.wordpress.org/plugins/loco-translate/).  You can set it either to *read* or *unread*.
+Of course, this works for the current logged user and will be skipped if the visitor is not logged.
+
+Example :
+
+`<?php
+$last_unread_topics_query_args = array(
+  'post_type'       => bbp_topic_post_type(), //or 'topic'
+  'posts_per_page'  => 5,
+  'bbppu'       => 'unread' //only unread ones
+);
+
+$last_unread_topics_query = new WP_Query( $last_unread_topics_query_args );
+?>`
+
+
 = How does it work? =
 
 *bbPress Pencil Unread* handles differently the way forums & topics are set as read.
 
-*   For **forums**, the time of each forum's last access by the user is stored in *bbppu_forums_visits* (usermeta) on forum visits, and compared to the forum last activity time. This means a forum will be set as "read" if the user **has visited the forum page, and even if some topics inside have not been read** (but they will remain listed as non read topics when displaying the forum).
+*  For **topics**, a post meta *bbppu_read_by* is attached to the topic each time a someone visits it; the meta value is the user ID.  When a new reply is added, all those metas are deleted.
+
+*  For **forums**, we compare the total count of topics with the total count of read topics for the current user.  If it does not match, the forum is considered as unread.
 
 *  Marking a forum (*Mark all as read*) adds an entry with the forum ID and timestamp in *bbppu_marked_forums* (usermeta).  When determining if a topic has been read, we check if the topic's forum (or ancestors) has a mark more recent than the topic time.
 
 * Marking a forum will only set the topics from this forum as read.  If there is **super sticky topics** displayed and that they belong to other forums, they will not be marked as read.
-
-*   To avoid that a forum would be set set as 'unread' after a user **posts a new topic or reply**; we check the forum status (if it was read or not) before posting the topic or reply.  If the forum was set to read, we'll keep that status.
-
-*   For **topics**, the ID of each visitor having read the topic is is stored in *bbppu_read_by* (postmeta) when the topic is opened.  When a new reply is added, the IDs of the users having already read the topic are deleted.
- 
-It's working that way to avoid having too much database calls / data stored.
 
 = How can I use those functions outside of the plugin ? =
 
@@ -78,6 +91,15 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 
 
 == Changelog ==
+
+= 1.2.3 =
+* No faking anymore !  Now the plugin **really** checks if a forum has its topics all read; while before, it was checking if the forum had been **opened**.
+* Allow to filter queries to get topics by read/unread status (see FAQ)
+* fixed loadHTML() error (https://wordpress.org/support/topic/just-upgraded-to-v-1-2-errors/#post-8169136)
+* Arabic translation (thanks to Mohammad Sy)
+* has_user_read_all_forum_topics() : store the results in a short transient (5s) to avoid querying several times the same stuff.
+* deleted 'bbppu_forums_visits' usermetas and related functions (+ upgrade function)
+* topic_readby_metaname is now multiple (+ upgrade function) : do not store array of user IDs in a single meta, but store multiple metas with single user ID each time
 
 = 1.2.2 =
 * Do not show 'Mark as read' link if no activity since last marked.
