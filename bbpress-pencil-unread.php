@@ -49,6 +49,8 @@ class bbP_Pencil_Unread {
     public $marked_forums_metaname = 'bbppu_marked_forums'; // contains an array of 'marked as read' timestamps for forums (stored in usermeta)
 
     public $qvar = 'bbppu';
+    
+    public $donate_link = 'http://bit.ly/gbreant';
 
 	/**
 	 * @var The one true Instance
@@ -116,8 +118,27 @@ class bbP_Pencil_Unread {
             add_action('bbp_init', array($this, 'register_scripts_styles'));
             add_action('bbp_enqueue_scripts', array($this, 'scripts_styles'));
             add_action('admin_enqueue_scripts', array($this, 'scripts_styles_admin'));
+        
+            add_filter( 'plugin_action_links_' . $this->basename, array($this, 'plugin_bottom_links')); //bottom links
             
 	}
+    
+    function plugin_bottom_links($links){
+        
+        $links[] = sprintf('<a target="_blank" href="%s">%s</a>',$this->donate_link,__('Donate','bbppu'));//donate
+        
+        if (current_user_can('manage_options')) {
+            $settings_page_url = add_query_arg(
+                array(
+                    'page'=>bbP_Pencil_Unread_Settings::$menu_slug
+                ),
+                get_admin_url(null, 'options-general.php')
+            );
+            $links[] = sprintf('<a href="%s">%s</a>',esc_url($settings_page_url),__('Settings'));
+        }
+        
+        return $links;
+    }
         
 	public function load_plugin_textdomain(){
 		load_plugin_textdomain( 'bbppu', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
@@ -290,7 +311,7 @@ class bbP_Pencil_Unread {
     //checks if the current page is the bbppu settings page
     function is_bbppu_admin(){
         $screen = get_current_screen();
-        if( $screen->id == 'settings_page_bbppu') return true;
+        if( $screen && ($screen->id == 'settings_page_bbppu') ) return true;
     }
     
 	function scripts_styles_admin(){
