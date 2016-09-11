@@ -51,7 +51,7 @@ If it doesn't work for you, please try to check/override our CSS styles (bbppu.c
 If it hasn't been done already, you can translate the plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
 
 = How can I filter topics to display only the unread or read ones ? =
-Just add the **bbppu** arg to your [Wordpress queries](https://fr.wordpress.org/plugins/loco-translate/).  You can set it either to *read* or *unread*.
+Just add the **bbppu** arg to your [Wordpress queries](https://codex.wordpress.org/Class_Reference/WP_Query).  You can set it either to *read* or *unread*.
 Of course, this works for the current logged user and will be skipped if the visitor is not logged.
 
 Example :
