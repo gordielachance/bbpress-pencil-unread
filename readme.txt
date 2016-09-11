@@ -47,9 +47,6 @@ Extract the zip file and just drop the contents in the wp-content/plugins/ direc
 Styling has been setup for the bbPress default theme.  
 If it doesn't work for you, please try to check/override our CSS styles (bbppu.css)
 
-= How can I get it in my language ? =
-If it hasn't been done already, you can translate the plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
-
 = How can I filter topics to display only the unread or read ones ? =
 Just add the **bbppu** arg to your [Wordpress queries](https://codex.wordpress.org/Class_Reference/WP_Query).  You can set it either to *read* or *unread*.
 Of course, this works for the current logged user and will be skipped if the visitor is not logged.
@@ -89,6 +86,9 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 
 1. Style of the read / non-read forums
 
+== Localization ==
+
+If it hasn't been done already, you can translate the plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
 
 == Changelog ==
 
