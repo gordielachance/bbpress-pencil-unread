@@ -46,7 +46,8 @@ class bbP_Pencil_Unread {
 	 */
     public $options_metaname = 'bbppu_options'; // plugin's options (stored in wp_options) 
 	public $topic_readby_metaname = 'bbppu_read_by'; // contains an array of user IDs having read that post (stored in postmeta)
-    public $marked_forums_metaname = 'bbppu_marked_forums'; // contains an array of 'marked as read' timestamps for forums (stored in usermeta) 
+    public $marked_forums_metaname = 'bbppu_marked_forums'; // contains an array of 'marked as read' timestamps for forums (stored in usermeta)
+
     
     public $qvar = 'bbppu';
         
@@ -186,7 +187,7 @@ class bbP_Pencil_Unread {
                             }
                         }
                         
-                        //remove 'bbppu_first_visit' usermetas
+                        //remove 'bbppu_forums_visits' usermetas
                         $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->usermeta WHERE meta_key = %s",'bbppu_forums_visits') );
                         
                         
@@ -212,7 +213,7 @@ class bbP_Pencil_Unread {
 
             //update forum / topic status
             add_action('bbp_template_after_replies_loop',array(&$this,'update_current_topic_read_by'));       //single topic
-            
+
             //save post actions
             add_action( 'bbp_new_topic_pre_extras',array(&$this,"forum_was_read_before_new_topic"));
             add_action( 'bbp_new_topic',array(&$this,"new_topic"),10,4 );
@@ -237,6 +238,7 @@ class bbP_Pencil_Unread {
         return $vars;
     }
     
+    // Filter a query for read/unread posts if the 'bbppu' var is set
     function filter_query( $query ){
         
         if ( ( $query_var = $query->get( $this->qvar ) ) && ( $user_id = get_current_user_id() ) ){
@@ -295,6 +297,7 @@ class bbP_Pencil_Unread {
             wp_enqueue_style('bbppu');
 	}
     
+    //checks if the current page is the bbppu settings page
     function is_bbppu_admin(){
         $screen = get_current_screen();
         if( $screen->id == 'settings_page_bbppu') return true;
@@ -925,6 +928,7 @@ class bbP_Pencil_Unread {
 
                 //get forums list nodes
                 $dom = new DOMDocument;
+                $internalErrors = libxml_use_internal_errors(true); // set error level
                 $dom->loadHTML($output);
                 $finder = new DomXPath($dom);
                 $classname="bbp-forum-link";
@@ -947,6 +951,8 @@ class bbP_Pencil_Unread {
                 add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
                 
                 $output = $dom->saveHTML();
+                
+                libxml_use_internal_errors($internalErrors); // restore error level
             }
 
             return $output;
