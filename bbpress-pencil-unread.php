@@ -185,13 +185,13 @@ class bbP_Pencil_Unread {
                             foreach((array)$user_ids as $user_id){
                                 add_post_meta($post_id,$this->topic_readby_metaname,$user_id);
                             }
-                        }
-                        
-                        //remove 'bbppu_forums_visits' usermetas
-                        $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->usermeta WHERE meta_key = %s",'bbppu_forums_visits') );
-                        
+                        }                        
                         
                     }
+            
+                    //remove 'bbppu_forums_visits' usermetas
+                    //TO FIX could be done for v1.2.3, but wait a little that we will not revert that stuff before removing it.
+                    //$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->usermeta WHERE meta_key = %s",'bbppu_forums_visits') );
                     
             
                 }

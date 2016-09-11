@@ -62,10 +62,6 @@ If it hasn't been done already, you can translate the plugin and send me the tra
 
 * Marking a forum will only set the topics from this forum as read.  If there is **super sticky topics** displayed and that they belong to other forums, they will not be marked as read.
 
-*   To avoid that a forum would be set set as 'unread' after a user **posts a new topic or reply**; we check the forum status (if it was read or not) before posting the topic or reply.  If the forum was set to read, we'll keep that status.
-
-It's working that way to avoid having too much database calls / data stored.
-
 = How can I use those functions outside of the plugin ? =
 
 Have a look at the file /bbppu-template.php, which contains functions you could need.
@@ -80,6 +76,7 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 == Changelog ==
 
 = XXX =
+* No faking anymore !  Now the plugin **really** checks if a forum has its topics all read - before, it was checking if the forum had been **opened**.
 * topic_readby_metaname is now multiple (+ upgrade function)
 * deleted 'bbppu_forums_visits' usermetas and related functions (+ upgrade function)
 
