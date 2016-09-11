@@ -3,7 +3,7 @@
 Plugin Name: bbPress Pencil Unread
 Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
 Description: Display which bbPress forums/topics have already been read by the user.
-Version: 1.2.2
+Version: 1.2.3
 Author: G.Breant
 Author URI: https://profiles.wordpress.org/grosbouff/
 Text Domain: bbppu
@@ -16,7 +16,7 @@ class bbP_Pencil_Unread {
         /**
 	 * @public string plugin version
 	 */
-	public $version = '1.2.2';
+	public $version = '1.2.3';
         
 	/**
 	 * @public string plugin DB version
@@ -48,16 +48,8 @@ class bbP_Pencil_Unread {
 	public $topic_readby_metaname = 'bbppu_read_by'; // contains an array of user IDs having read that post (stored in postmeta)
     public $marked_forums_metaname = 'bbppu_marked_forums'; // contains an array of 'marked as read' timestamps for forums (stored in usermeta)
 
-    
     public $qvar = 'bbppu';
-        
-	/**
-         * When creating a new post (topic/reply), set this var to true or false
-         * So we can update the forum status after the post creation (keep it read if it was read)
-         * @var type 
-         */
-	public $forum_was_read_before_new_post = false;
-        
+
 	/**
 	 * @var The one true Instance
 	 */
@@ -190,7 +182,7 @@ class bbP_Pencil_Unread {
                     }
             
                     //remove 'bbppu_forums_visits' usermetas
-                    //TO FIX could be done for v1.2.3, but wait a little that we will not revert that stuff before removing it.
+                    //TO FIX could be done for v1.2.3, but wait a little that we will not revert that stuff enabling removing it.
                     //$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->usermeta WHERE meta_key = %s",'bbppu_forums_visits') );
                     
             
@@ -215,11 +207,9 @@ class bbP_Pencil_Unread {
             add_action('bbp_template_after_replies_loop',array(&$this,'update_current_topic_read_by'));       //single topic
 
             //save post actions
-            add_action( 'bbp_new_topic_pre_extras',array(&$this,"forum_was_read_before_new_topic"));
             add_action( 'bbp_new_topic',array(&$this,"new_topic"),10,4 );
             add_action( 'save_post',array( $this, 'new_topic_backend' ) );
 
-            add_action( 'bbp_new_reply_pre_extras',array(&$this,"forum_was_read_before_new_reply"),10,2);
             add_action( 'bbp_new_reply',array(&$this,"new_reply"),10,5 );
             add_action( 'save_post',array( $this, 'new_reply_backend' ) );
 
@@ -523,21 +513,6 @@ class bbP_Pencil_Unread {
             }
 
             return update_user_meta($user_id, $this->marked_forums_metaname, $marked_forums );
-	}
-        
-	/**
-	 * Before saving a new post/reply,
-	 * store the forum status (read/unread) so we can update its status after the post creation
-	 * (see fn 
-	 * @param type $post_id
-	 * @param type $forum_id
-	 */
-	function forum_was_read_before_new_topic($forum_id){
-            $this->forum_was_read_before_new_post = self::has_user_read($forum_id);
-	}
-        
-	function forum_was_read_before_new_reply($topic_id, $forum_id){
-            $this->forum_was_read_before_new_post = self::has_user_read($forum_id);
 	}
 
 	function new_topic_backend($post_id){

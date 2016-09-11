@@ -50,6 +50,23 @@ If it doesn't work for you, please try to check/override our CSS styles (bbppu.c
 = How can I get it in my language ? =
 If it hasn't been done already, you can translate the plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
 
+= How can I filter topics to display only the unread or read ones ? =
+Just add the **bbppu** arg to your [Wordpress queries](https://fr.wordpress.org/plugins/loco-translate/).  You can set it either to *read* or *unread*.
+Of course, this works for the current logged user and will be skipped if the visitor is not logged.
+
+Example :
+
+`<?php
+$last_unread_topics_query_args = array(
+  'post_type'       => bbp_topic_post_type(), //or 'topic'
+  'posts_per_page'  => 5,
+  'bbppu'       => 'unread' //only unread ones
+);
+
+$last_unread_topics_query = new WP_Query( $last_unread_topics_query_args );
+?>`
+
+
 = How does it work? =
 
 *bbPress Pencil Unread* handles differently the way forums & topics are set as read.
@@ -75,10 +92,14 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 
 == Changelog ==
 
-= XXX =
-* No faking anymore !  Now the plugin **really** checks if a forum has its topics all read - before, it was checking if the forum had been **opened**.
-* topic_readby_metaname is now multiple (+ upgrade function)
+= 1.2.3 =
+* No faking anymore !  Now the plugin **really** checks if a forum has its topics all read; while before, it was checking if the forum had been **opened**.
+* Allow to filter queries to get topics by read/unread status (see FAQ)
+* fixed loadHTML() error (https://wordpress.org/support/topic/just-upgraded-to-v-1-2-errors/#post-8169136)
+* Arabic translation (thanks to Mohammad Sy)
+* has_user_read_all_forum_topics() : store the results in a short transient (5s) to avoid querying several times the same stuff.
 * deleted 'bbppu_forums_visits' usermetas and related functions (+ upgrade function)
+* topic_readby_metaname is now multiple (+ upgrade function) : do not store array of user IDs in a single meta, but store multiple metas with single user ID each time
 
 = 1.2.2 =
 * Do not show 'Mark as read' link if no activity since last marked.
