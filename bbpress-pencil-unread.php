@@ -3,7 +3,7 @@
 Plugin Name: bbPress Pencil Unread
 Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
 Description: Display which bbPress forums/topics have already been read by the user.
-Version: 1.2.3
+Version: 1.2.4
 Author: G.Breant
 Author URI: https://profiles.wordpress.org/grosbouff/
 Text Domain: bbppu
@@ -16,7 +16,7 @@ class bbP_Pencil_Unread {
         /**
 	 * @public string plugin version
 	 */
-	public $version = '1.2.3';
+	public $version = '1.2.4';
         
 	/**
 	 * @public string plugin DB version
@@ -925,7 +925,7 @@ class bbP_Pencil_Unread {
                 //get forums list nodes
                 $dom = new DOMDocument;
                 $internalErrors = libxml_use_internal_errors(true); // set error level
-                $dom->loadHTML($output);
+                $dom->loadHTML('<?xml encoding="utf-8" ?>' . $output); // use utf8 encoding to avoid problems with foreign languages (http://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly)
                 $finder = new DomXPath($dom);
                 $classname="bbp-forum-link";
                 $forum_link_nodes = $finder->query("//*[contains(@class, '$classname')]");

@@ -91,7 +91,8 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 If it hasn't been done already, you can translate the plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
 
 == Changelog ==
-
+= 1.2.4 =
+* Use utf8 encoding when running $dom->loadHTML() to avoid problems with foreign languages (http://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly)
 = 1.2.3 =
 * No faking anymore !  Now the plugin **really** checks if a forum has its topics all read; while before, it was checking if the forum had been **opened**.
 * Allow to filter queries to get topics by read/unread status (see FAQ)
