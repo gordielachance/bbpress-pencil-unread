@@ -88,7 +88,9 @@ class bbP_Pencil_Unread {
         
         $this->options_default = array(
             'test_registration_time'                => 'on', //all items dated befoe user's first visit
-            'count_topics_transient_duration'       => 5
+            'bookmarks'                             => 'on',
+            'count_topics_transient_duration'       => 5,
+            
         );
         
         $this->options = wp_parse_args(get_option( $this->options_metaname), $this->options_default);
@@ -101,6 +103,11 @@ class bbP_Pencil_Unread {
             require( $this->plugin_dir . 'bbppu-settings.php');
             require( $this->plugin_dir . 'bbppu-template.php');
             require( $this->plugin_dir . 'bbppu-ajax.php');
+        
+            if ( $this->get_options('bookmarks') == 'on' ){
+                require( $this->plugin_dir . 'bbppu-bookmarks.php');
+            }
+        
             if (is_admin()){
             }
 	}
@@ -242,13 +249,14 @@ class bbP_Pencil_Unread {
             //queries
             add_filter('query_vars', array(&$this,'register_query_vars' ));
             add_action( 'pre_get_posts', array($this, 'filter_query'));
+        
 	}
     
     function register_query_vars($vars) {
         $vars[] = $this->qvar;
         return $vars;
     }
-    
+
     // Filter a query for read/unread posts if the 'bbppu' var is set
     function filter_query( $query ){
         

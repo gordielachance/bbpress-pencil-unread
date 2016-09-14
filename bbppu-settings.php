@@ -38,6 +38,7 @@ class bbP_Pencil_Unread_Settings {
 
             //test registration time
             $new_input['test_registration_time'] = ( isset($input['test_registration_time']) ) ? 'on' : 'off';
+            $new_input['bookmarks'] = ( isset($input['bookmarks']) ) ? 'on' : 'off';
     
         }
         
@@ -76,6 +77,14 @@ class bbP_Pencil_Unread_Settings {
             'bbppu-settings-page', // Page
             'settings_general'//section
         );
+   
+        add_settings_field(
+            'bookmarks', 
+            __('Enable bookmarks','bbppu'), 
+            array( $this, 'enable_bookmark_callback' ), 
+            'bbppu-settings-page', // Page
+            'settings_general'//section
+        );
         
 
         
@@ -108,6 +117,17 @@ class bbP_Pencil_Unread_Settings {
             bbppu()->options_metaname,
             checked( $option, 'on', false ),
             __("Items older than the registration date of the user should be marked as read.","bbppu")
+        );
+    }
+    
+    function enable_bookmark_callback(){
+        $option = bbppu()->get_options('bookmarks');
+        
+        printf(
+            '<input type="checkbox" name="%s[bookmarks]" value="on" %s /> %s',
+            bbppu()->options_metaname,
+            checked( $option, 'on', false ),
+            sprintf(__("Add bookmarks links %s after the topic title; to jump to the last read reply","bbppu"),'<code><span class="dashicons dashicons-flag"></span></code>')
         );
     }
 

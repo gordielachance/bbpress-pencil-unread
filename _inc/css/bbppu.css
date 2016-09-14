@@ -5,45 +5,49 @@ body a.bbppu-hentry, body ul.bbppu-hentry > li:first-child {
   -webkit-transition: border 500ms ease-out;
   transition: border 500ms ease-out;
 }
-/* line 13, ../scss/bbppu.scss */
+/* line 14, ../scss/bbppu.scss */
+body .bbppu-bookmark .dashicons {
+  font-size: 1.5em;
+}
+/* line 19, ../scss/bbppu.scss */
 body .bbppu-mark-as-read {
   margin-bottom: 15px;
   text-align: right;
 }
-/* line 17, ../scss/bbppu.scss */
+/* line 23, ../scss/bbppu.scss */
 body .bbppu-mark-as-read a .bbppu-loading {
   filter: progid:DXImageTransform.Microsoft.Alpha(Opacity=0);
   opacity: 0;
 }
-/* line 21, ../scss/bbppu.scss */
+/* line 27, ../scss/bbppu.scss */
 body .bbppu-mark-as-read a.loading .bbppu-loading {
   filter: progid:DXImageTransform.Microsoft.Alpha(enabled=false);
   opacity: 1;
 }
-/* line 28, ../scss/bbppu.scss */
+/* line 34, ../scss/bbppu.scss */
 body:not(.rtl) a.bbppu-hentry, body:not(.rtl) ul.bbppu-hentry > li:first-child {
   padding-left: 5px;
 }
-/* line 32, ../scss/bbppu.scss */
+/* line 38, ../scss/bbppu.scss */
 body:not(.rtl) a.bbppu-hentry.bbppu-read,
 body:not(.rtl) ul.bbppu-hentry.bbppu-read > li:first-child {
   border-left: 5px solid #EAEAEA;
 }
-/* line 37, ../scss/bbppu.scss */
+/* line 43, ../scss/bbppu.scss */
 body:not(.rtl) a.bbppu-hentry.bbppu-unread,
 body:not(.rtl) ul.bbppu-hentry.bbppu-unread > li:first-child {
   border-left: 5px solid #21759B;
 }
-/* line 44, ../scss/bbppu.scss */
+/* line 50, ../scss/bbppu.scss */
 body.rtl a.bbppu-hentry, body.rtl ul.bbppu-hentry > li:first-child {
   padding-right: 5px;
 }
-/* line 48, ../scss/bbppu.scss */
+/* line 54, ../scss/bbppu.scss */
 body.rtl a.bbppu-hentry.bbppu-read,
 body.rtl ul.bbppu-hentry.bbppu-read > li:first-child {
   border-right: 5px solid #EAEAEA;
 }
-/* line 53, ../scss/bbppu.scss */
+/* line 59, ../scss/bbppu.scss */
 body.rtl a.bbppu-hentry.bbppu-unread,
 body.rtl ul.bbppu-hentry.bbppu-unread > li:first-child {
   border-right: 5px solid #21759B;

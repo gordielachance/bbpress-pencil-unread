@@ -9,6 +9,12 @@ body{
     a.bbppu-hentry, ul.bbppu-hentry > li:first-child {
       @include transition(border 500ms ease-out);
     }
+    
+    .bbppu-bookmark{
+        .dashicons{
+            font-size: 1.5em;
+        }
+    }
 
     .bbppu-mark-as-read {
       margin-bottom: 15px;
