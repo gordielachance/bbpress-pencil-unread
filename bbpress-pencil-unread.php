@@ -854,19 +854,20 @@ class bbP_Pencil_Unread {
             $post_type = get_post_type($post_id);
             
             self::debug_log('user#'.$user_id.' has_user_read '.$post_type.'#'.$post_id.' ? ');
+            
+            //skip timestamp
+            if ( $skip_timestamp = $this->get_skip_timestamp($user_id,$post_id) ){
 
-            switch($post_type){
+                $last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true )); //get post last activity time
+                $has_read = ($last_active_time <= $skip_timestamp);
+            }
+            
+            if (!$has_read){
+                
+                switch($post_type){
 
-                case bbp_get_topic_post_type(): //topic
-                    
-                    //skip timestamp
-                    if ( $skip_timestamp = $this->get_skip_timestamp($user_id,$post_id) ){
+                    case bbp_get_topic_post_type(): //topic
 
-                        $last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true )); //get post last activity time
-                        $has_read = ($last_active_time <= $skip_timestamp);
-
-                    }else{
-                        
                         $readers = self::get_topic_readers($post_id);
 
                         if ( false === $readers ){ //if the plugin was enabled, this should never be false but an array
@@ -875,48 +876,48 @@ class bbP_Pencil_Unread {
                         }
                         //check this topic has been read by the logged user
                         $has_read = in_array($user_id,(array)$readers);
-                        
-                    }
 
 
+                    break;
 
-                break;
+                    case bbp_get_forum_post_type(): //forum
 
-                case bbp_get_forum_post_type(): //forum
+                        //the forum has neither topics nor replies
+                        if (!bbp_get_forum_post_count($post_id)){
 
-                    //the forum has neither topics nor replies
-                    if (!bbp_get_forum_post_count($post_id)){
-
-                        $has_read = true;
-                        break;
-
-                    }
-
-                    $check_forums = array($post_id);
-
-                    //forum hierarchy
-                    if ( $subforums = bbp_forum_get_subforums($post_id) ){
-
-                        $subforums_count = count($subforums);
-                        $subforums_read = 0;
-
-                        foreach ($subforums as $subforum) {
-                            $check_forums[] = $subforum->ID;
-                        }
-                    }
-
-                    //look for an unread forum
-                    $has_read = true;
-                    foreach($check_forums as $forum_id){
-                        if ( !$this->has_user_read_all_forum_topics( $forum_id,$user_id ) ) {
-                            $has_read = false;
+                            $has_read = true;
                             break;
+
                         }
-                    }
 
-                break;
+                        $check_forums = array($post_id);
 
+                        //forum hierarchy
+                        if ( $subforums = bbp_forum_get_subforums($post_id) ){
+
+                            $subforums_count = count($subforums);
+                            $subforums_read = 0;
+
+                            foreach ($subforums as $subforum) {
+                                $check_forums[] = $subforum->ID;
+                            }
+                        }
+
+                        //look for an unread forum
+                        $has_read = true;
+                        foreach($check_forums as $forum_id){
+                            if ( !$this->has_user_read_all_forum_topics( $forum_id,$user_id ) ) {
+                                $has_read = false;
+                                break;
+                            }
+                        }
+
+                    break;
+
+                }
+                
             }
+
 
             self::debug_log('user#'.$user_id.' has_user_read '.get_post_type($post_id).'#'.$post_id.' ? ***'.(bool)$has_read);
 
