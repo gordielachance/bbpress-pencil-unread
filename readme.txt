@@ -17,9 +17,11 @@ bbPress Pencil Unread display which bbPress forums/topics have already been read
 bbPress Pencil Unread display which bbPress forums/topics have already been read by the logged user; and adds classes to forums/topics so you can customize your theme easily.
 Compatible with BuddyPress Groups Forums feature.
 
-*   For **forums**, it checks if the user has visited the forum since it was last active.
-*   It also displays a link above each forum to mark it as 'read'.
+*   For **forums**, it checks if the user has read all topics since last visit.
 *   For **topics**, it checks if the user opened the topic since it was last active.
+*   *Mark as read* (optional) mark all topics of a forum as read.
+*   *Bookmarks* : (optional) adds a link after the topics titles; that goes directly to the last read reply of a topic.
+*   Option to set as read topics that where created before the user's registration
 
 = Contributors =
 
@@ -91,6 +93,9 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 If it hasn't been done already, you can translate the plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
 
 == Changelog ==
+
+= 1.2.7 =
+* Added the 'bookmark' option, which adds (by default) a link after topics titles to go directly to the last read reply of that topic.
 
 = 1.2.6 =
 * Added meta query in has_user_read_all_forum_topics() to ignore posts below timestamp generated in get_skip_timestamp()
