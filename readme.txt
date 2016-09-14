@@ -92,7 +92,7 @@ If it hasn't been done already, you can translate the plugin and send me the tra
 
 == Changelog ==
 
-= 1.2.5 =
+= 1.2.6 =
 * Added meta query in has_user_read_all_forum_topics() to ignore posts below timestamp generated in get_skip_timestamp()
 * New function get_skip_timestamp()
 
