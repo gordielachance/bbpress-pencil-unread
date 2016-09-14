@@ -91,6 +91,11 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 If it hasn't been done already, you can translate the plugin and send me the translation.  I recommand [Loco Translate](https://fr.wordpress.org/plugins/loco-translate/) to work on your translations within Wordpress.
 
 == Changelog ==
+
+= 1.2.5 =
+* Added meta query in has_user_read_all_forum_topics() to ignore posts below timestamp generated in get_skip_timestamp()
+* New function get_skip_timestamp()
+
 = 1.2.4 =
 * Use utf8 encoding when running $dom->loadHTML() to avoid problems with foreign languages (http://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly)
 = 1.2.3 =
