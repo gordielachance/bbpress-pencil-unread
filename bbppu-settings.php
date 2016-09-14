@@ -8,7 +8,6 @@ class bbP_Pencil_Unread_Settings {
 	function __construct() {
 		add_action( 'admin_menu', array( $this, 'create_admin_menu' ) );
         add_action( 'admin_init', array( $this, 'settings_init' ) );
-        add_action( 'current_screen', array( $this, 'review_rate_donate_notice') );
 
         
 	}
@@ -142,26 +141,23 @@ class bbP_Pencil_Unread_Settings {
             __("Reset options to their default values.","bbppu")
         );
     }
-    
-    //TO FIX TO CHECK, seems to be fired twice
-    function review_rate_donate_notice(){
-        
-        if ( !bbppu()->is_bbppu_admin() ) return;
-        
-        $rate_link_wp = 'https://wordpress.org/support/view/plugin-reviews/bbpress-pencil-unread?rate#postform';
-        $rate_link = '<a href="'.$rate_link_wp.'" target="_blank" href=""><i class="fa fa-star"></i> '.__('Reviewing it','bbppu').'</a>';
-        $donate_link = '<a href="http://bit.ly/gbreant" target="_blank" href=""><i class="fa fa-usd"></i> '.__('make a donation','bbppu').'</a>';
-        
-        add_settings_error('bbppu_option_group', 'review_rate_donate', 
-            sprintf(__('Happy with this plugin ? %s and %s would help!','bbppu'),$rate_link,$donate_link)
-        );
-    }
+
 
 	function  settings_page() {
         ?>
         <div class="wrap">
             <h2><?php _e('bbPress Pencil Unread Settings','bbppu');?></h2>  
             
+            <div>
+                <?php
+                $rate_link_wp = 'https://wordpress.org/support/view/plugin-reviews/bbpress-pencil-unread?rate#postform';
+                $rate_link = '<a href="'.$rate_link_wp.'" target="_blank" href=""><i class="fa fa-star"></i> '.__('Reviewing it','bbppu').'</a>';
+                $donate_link = '<a href="http://bit.ly/gbreant" target="_blank" href=""><i class="fa fa-usd"></i> '.__('make a donation','bbppu').'</a>';
+
+                echo '<p><em>'.sprintf(__('Great experience with this plugin ? %s and %s would help us maintaining it !','bbppu'),$rate_link,$donate_link).'</em></p>';
+                ?>
+            </div>
+            <hr/>
             <?php settings_errors('bbppu_option_group');?>
             <form method="post" action="options.php">
                 <?php
