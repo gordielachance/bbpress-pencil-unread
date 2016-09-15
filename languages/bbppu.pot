@@ -3,83 +3,109 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-09 10:46+0000\n"
+"POT-Creation-Date: 2016-09-15 00:21+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: \n"
 "Language: \n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Loco https://localise.biz/"
+"X-Generator: Loco - https://localise.biz/"
 
-#. page title - I never understood why this parameter is needed for.  Put what you like ?
-#. Name of the plugin
-#: bbppu-settings.php:19 bbppu-settings.php:20
-msgid "bbPress Pencil Unread"
+#: bbppu-bookmarks.php:68
+msgid "Go to bookmark"
 msgstr ""
 
-#. ID
-#: bbppu-settings.php:67
-msgid "General"
-msgstr ""
-
-#: bbppu-settings.php:74
-msgid "Registration date check"
-msgstr ""
-
-#. ID
-#: bbppu-settings.php:84
-msgid "System"
-msgstr ""
-
-#: bbppu-settings.php:91
-msgid "Reset Options"
-msgstr ""
-
-#: bbppu-settings.php:110
-msgid ""
-"Items older than the registration date of the user should be marked as read."
-msgstr ""
-
-#. Option name
-#: bbppu-settings.php:122
-msgid "Reset options to their default values."
-msgstr ""
-
-#: bbppu-settings.php:132
-msgid "Reviewing it"
-msgstr ""
-
-#: bbppu-settings.php:133
-msgid "make a donation"
-msgstr ""
-
-#: bbppu-settings.php:136
-msgid "Happy with this plugin ? %s and %s would help!"
-msgstr ""
-
-#: bbppu-settings.php:143
-msgid "bbPress Pencil Unread Settings"
-msgstr ""
-
-#: bbpress-pencil-unread.php:258
+#: bbppu-forum-marks.php:125 bbpress-pencil-unread.php:308
 msgid "Marked as read"
 msgstr ""
 
-#: bbpress-pencil-unread.php:349
+#: bbppu-forum-marks.php:127
 msgid "Mark all as read"
 msgstr ""
 
-#: bbpress-pencil-unread.php:436
+#: bbppu-forum-marks.php:214
 msgid ""
 "<strong>ERROR</strong>: No forum was found! Which forum are you marking as "
 "read ?"
 msgstr ""
 
-#: bbpress-pencil-unread.php:458
+#: bbppu-forum-marks.php:236
 msgid "<strong>ERROR</strong>: There was a problem marking this forum as read!"
+msgstr ""
+
+#. page title - I never understood why this parameter is needed for.  Put what you like ?
+#. Name of the plugin
+#: bbppu-settings.php:18 bbppu-settings.php:19
+msgid "bbPress Pencil Unread"
+msgstr ""
+
+#. ID
+#: bbppu-settings.php:68
+msgid "General"
+msgstr ""
+
+#: bbppu-settings.php:75
+msgid "Enable forums marks"
+msgstr ""
+
+#: bbppu-settings.php:83
+msgid "Registration date check"
+msgstr ""
+
+#: bbppu-settings.php:91
+msgid "Enable bookmarks"
+msgstr ""
+
+#. ID
+#: bbppu-settings.php:101
+msgid "System"
+msgstr ""
+
+#: bbppu-settings.php:108
+msgid "Reset Options"
+msgstr ""
+
+#: bbppu-settings.php:127
+msgid "Display a 'Mark as read' link in forums that marks all their topics"
+msgstr ""
+
+#: bbppu-settings.php:138
+msgid ""
+"Items older than the registration date of the user should be marked as read."
+msgstr ""
+
+#: bbppu-settings.php:149
+msgid ""
+"Add bookmarks links %s after the topic title; to jump to the last read reply"
+msgstr ""
+
+#. Option name
+#: bbppu-settings.php:161
+msgid "Reset options to their default values."
+msgstr ""
+
+#: bbppu-settings.php:169
+msgid "bbPress Pencil Unread Settings"
+msgstr ""
+
+#: bbppu-settings.php:174
+msgid "Reviewing it"
+msgstr ""
+
+#: bbppu-settings.php:175
+msgid "make a donation"
+msgstr ""
+
+#: bbppu-settings.php:177
+msgid ""
+"Great experience with this plugin ? %s and %s would help us maintaining it !"
+msgstr ""
+
+#: bbpress-pencil-unread.php:139
+msgid "Donate"
 msgstr ""
 
 #. Description of the plugin
@@ -95,5 +121,5 @@ msgid "G.Breant"
 msgstr ""
 
 #. Author URI of the plugin
-msgid "http://sandbox.pencil2d.org/"
+msgid "https://profiles.wordpress.org/grosbouff/"
 msgstr ""

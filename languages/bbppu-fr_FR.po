@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bbPress Pencil Unread\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-09 10:46+0000\n"
-"PO-Revision-Date: 2016-09-09 10:49+0000\n"
+"POT-Creation-Date: 2016-09-15 00:22+0000\n"
+"PO-Revision-Date: 2016-09-15 00:25+0000\n"
 "Last-Translator: gordie <gordie.lachance@gmail.com>\n"
 "Language-Team: French (France)\n"
 "Language: fr-FR\n"
@@ -13,79 +13,61 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Loco - https://localise.biz/"
 
-#. page title - I never understood why this parameter is needed for.  Put what you like ?
-#. Name of the plugin
-#: bbppu-settings.php:19 bbppu-settings.php:20
-msgid "bbPress Pencil Unread"
-msgstr ""
+#: bbppu-bookmarks.php:68
+msgid "Go to bookmark"
+msgstr "Aller au signet"
 
-#. ID
-#: bbppu-settings.php:67
-msgid "General"
-msgstr "Général"
-
-#: bbppu-settings.php:74
-msgid "Registration date check"
-msgstr "Comparer la date d'inscription"
-
-#. ID
-#: bbppu-settings.php:84
-msgid "System"
-msgstr "Système"
-
-#: bbppu-settings.php:91
-msgid "Reset Options"
-msgstr "Réinitialiser les options"
-
-#: bbppu-settings.php:110
-msgid ""
-"Items older than the registration date of the user should be marked as read."
-msgstr ""
-"Marquer comme lu les éléments antérieurs à la date d'inscription de "
-"l'utilisateur "
-
-#. Option name
-#: bbppu-settings.php:122
-msgid "Reset options to their default values."
-msgstr "Réinitialiser les options à leurs valeurs d'origine"
-
-#: bbppu-settings.php:132
-msgid "Reviewing it"
-msgstr "En faire un compte-rendu"
-
-#: bbppu-settings.php:133
-msgid "make a donation"
-msgstr "faire un don"
-
-#: bbppu-settings.php:136
-msgid "Happy with this plugin ? %s and %s would help!"
-msgstr "Content de ce plugin ? %s et %s peut aider !"
-
-#: bbppu-settings.php:143
-msgid "bbPress Pencil Unread Settings"
-msgstr "Paramètres de bbPress Pencil Unread"
-
-#: bbpress-pencil-unread.php:258
-msgid "Marked as read"
-msgstr "Marqué comme lu"
-
-#: bbpress-pencil-unread.php:349
-msgid "Mark all as read"
-msgstr "Marquer comme lu"
-
-#: bbpress-pencil-unread.php:436
+#: bbppu-forum-marks.php:214
 msgid ""
 "<strong>ERROR</strong>: No forum was found! Which forum are you marking as "
 "read ?"
 msgstr ""
 
-#: bbpress-pencil-unread.php:458
+#: bbppu-forum-marks.php:236
 msgid "<strong>ERROR</strong>: There was a problem marking this forum as read!"
 msgstr ""
+
+#. page title - I never understood why this parameter is needed for.  Put what you like ?
+#. Name of the plugin
+#: bbppu-settings.php:18 bbppu-settings.php:19
+msgid "bbPress Pencil Unread"
+msgstr ""
+
+#: bbppu-settings.php:75
+msgid "Enable forums marks"
+msgstr "Activer les marquages pour les forums"
+
+#: bbppu-settings.php:91
+msgid "Enable bookmarks"
+msgstr "Activer les signets"
+
+#: bbppu-settings.php:127
+msgid "Display a 'Mark as read' link in forums that marks all their topics"
+msgstr ""
+"Afficher un lien 'marquer comme lu\" dans les forums, pour marquer tous "
+"leurs sujets"
+
+#: bbppu-settings.php:149
+msgid ""
+"Add bookmarks links %s after the topic title; to jump to the last read reply"
+msgstr ""
+"Ajouter des liens signets %s après le titre du sujet, pour accéder à la "
+"dernière réponse lue"
+
+#: bbppu-settings.php:177
+msgid ""
+"Great experience with this plugin ? %s and %s would help us maintaining it !"
+msgstr ""
+"Bonne expérience avec ce plugin ? %s et %s nous aiderait à l'entretenir !"
+
+#: bbpress-pencil-unread.php:139
+msgid "Donate"
+msgstr "Faire un don"
 
 #. Description of the plugin
 msgid "Display which bbPress forums/topics have already been read by the user."
 msgstr ""
+"Affiche quels forums et sujets bbPress ont déjà été lu par l'utilisateur"
 
 #. URI of the plugin
 msgid "http://wordpress.org/extend/plugins/bbpress-pencil-unread"
@@ -96,5 +78,55 @@ msgid "G.Breant"
 msgstr ""
 
 #. Author URI of the plugin
-msgid "http://sandbox.pencil2d.org/"
+msgid "https://profiles.wordpress.org/grosbouff/"
 msgstr ""
+
+#: bbppu-forum-marks.php:125 bbpress-pencil-unread.php:308
+msgid "Marked as read"
+msgstr "Marqué comme lu"
+
+#: bbppu-forum-marks.php:127
+msgid "Mark all as read"
+msgstr "Marquer comme lu"
+
+#. ID
+#: bbppu-settings.php:68
+msgid "General"
+msgstr "Général"
+
+#: bbppu-settings.php:83
+msgid "Registration date check"
+msgstr "Comparer la date d'inscription"
+
+#. ID
+#: bbppu-settings.php:101
+msgid "System"
+msgstr "Système"
+
+#: bbppu-settings.php:108
+msgid "Reset Options"
+msgstr "Réinitialiser les options"
+
+#: bbppu-settings.php:138
+msgid ""
+"Items older than the registration date of the user should be marked as read."
+msgstr ""
+"Marquer comme lu les éléments antérieurs à la date d'inscription de "
+"l'utilisateur "
+
+#. Option name
+#: bbppu-settings.php:161
+msgid "Reset options to their default values."
+msgstr "Réinitialiser les options à leurs valeurs d'origine"
+
+#: bbppu-settings.php:169
+msgid "bbPress Pencil Unread Settings"
+msgstr "Paramètres de bbPress Pencil Unread"
+
+#: bbppu-settings.php:174
+msgid "Reviewing it"
+msgstr "En faire un compte-rendu"
+
+#: bbppu-settings.php:175
+msgid "make a donation"
+msgstr "faire un don"
