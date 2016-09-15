@@ -36,6 +36,7 @@ class bbP_Pencil_Unread_Settings {
         }else{ //sanitize values
 
             //test registration time
+            $new_input['forums_marks'] = ( isset($input['forums_marks']) ) ? 'on' : 'off';
             $new_input['test_registration_time'] = ( isset($input['test_registration_time']) ) ? 'on' : 'off';
             $new_input['bookmarks'] = ( isset($input['bookmarks']) ) ? 'on' : 'off';
     
@@ -67,6 +68,14 @@ class bbP_Pencil_Unread_Settings {
             __('General','bbppu'), // Title
             array( $this, 'bbppu_settings_general_desc' ), // Callback
             'bbppu-settings-page' // Page
+        );
+
+        add_settings_field(
+            'marks', 
+            __('Enable forums marks','bbppu'), 
+            array( $this, 'enable_forums_marks_callback' ), 
+            'bbppu-settings-page', // Page
+            'settings_general'//section
         );
 
         add_settings_field(
@@ -106,6 +115,17 @@ class bbP_Pencil_Unread_Settings {
     
     function bbppu_settings_general_desc(){
         
+    }
+    
+    function enable_forums_marks_callback(){
+        $option = bbppu()->get_options('forums_marks');
+        
+        printf(
+            '<input type="checkbox" name="%s[forums_marks]" value="on" %s /> %s',
+            bbppu()->options_metaname,
+            checked( $option, 'on', false ),
+            __("Display a 'Mark as read' link in forums that marks all their topics","bbppu")
+        );
     }
     
     function test_registration_time_callback(){

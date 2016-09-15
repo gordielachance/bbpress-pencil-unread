@@ -46,7 +46,6 @@ class bbP_Pencil_Unread {
 	 */
     public $options_metaname = 'bbppu_options'; // plugin's options (stored in wp_options) 
 	public $topic_readby_metaname = 'bbppu_read_by'; // contains an array of user IDs having read that post (stored in postmeta)
-    public $marked_forums_metaname = 'bbppu_marked_forums'; // contains an array of 'marked as read' timestamps for forums (stored in usermeta)
 
     public $qvar = 'bbppu';
     
@@ -87,6 +86,7 @@ class bbP_Pencil_Unread {
 		$this->plugin_url = plugin_dir_url ( $this->file );
         
         $this->options_default = array(
+            'forums_marks'                          => 'on',
             'test_registration_time'                => 'on', //all items dated befoe user's first visit
             'bookmarks'                             => 'on',
             'count_topics_transient_duration'       => 5,
@@ -102,7 +102,11 @@ class bbP_Pencil_Unread {
             require( $this->plugin_dir . 'bbppu-functions.php');
             require( $this->plugin_dir . 'bbppu-settings.php');
             require( $this->plugin_dir . 'bbppu-template.php');
-            require( $this->plugin_dir . 'bbppu-ajax.php');
+            //require( $this->plugin_dir . 'bbppu-ajax.php');
+        
+            if ( $this->get_options('forums_marks') == 'on' ){
+                require( $this->plugin_dir . 'bbppu-forum-marks.php');
+            }
         
             if ( $this->get_options('bookmarks') == 'on' ){
                 require( $this->plugin_dir . 'bbppu-bookmarks.php');
@@ -183,7 +187,7 @@ class bbP_Pencil_Unread {
 
                         //save datas
                         foreach($users_marks as $user_id=>$user_marks){
-                            if (update_user_meta($user_id,$this->marked_forums_metaname, $user_marks )){
+                            if (update_user_meta($user_id,'bbppu_marked_forums', $user_marks )){
 								//remove old datas
                         		$wpdb->query($wpdb->prepare("DELETE FROM $wpdb->usermeta WHERE user_id='%d' AND meta_key LIKE '%s'", $user_id, 'bbppu_marked_forum_%'));
                             }
@@ -241,11 +245,6 @@ class bbP_Pencil_Unread {
             add_action( 'bbp_new_reply',array(&$this,"new_reply"),10,5 );
             add_action( 'save_post',array( $this, 'new_reply_backend' ) );
 
-            //mark as read
-            add_action( 'bbp_template_before_forums_index', array(&$this,'mark_as_read_link'));
-            add_action( 'bbp_template_before_single_forum', array(&$this,'mark_as_read_link'));
-            add_action("wp", array(&$this,"process_mark_as_read"));    //process "mark as read" link
-        
             //queries
             add_filter('query_vars', array(&$this,'register_query_vars' ));
             add_action( 'pre_get_posts', array($this, 'filter_query'));
@@ -330,218 +329,6 @@ class bbP_Pencil_Unread {
 
             //STYLES
             wp_enqueue_style('font-awesome');
-	}
-
-    function mark_as_read_link( $args = array() ){
-        echo $this->get_mark_as_read_link($args);
-    }
-    
-    function get_mark_as_read_link( $args = array() ){
-		// No link
-		$retval = false;
-
-		// Parse the arguments
-		$r = bbp_parse_args( $args, array(
-			'forum_id'    => 0,
-			'user_id'     => 0,
-			'before'      => '',
-			'after'       => ''
-		), 'bbppu_get_mark_as_read_link' );
-
-		// No link for categories until we support subscription hierarchy
-		// @see http://bbpress.trac.wordpress.org/ticket/2475
-		//if ( ! bbp_is_forum_category() ) {
-			$retval = $this->get_user_mark_as_read_link( $r );
-		//}
-        
-        return $retval;
-    }
-    
-	function get_user_mark_as_read_link( $args = '', $user_id = 0, $wrap = true ) {
-
-		// Parse arguments against default values
-		$r = bbp_parse_args( $args, array(
-			'user_id'     => 0,
-			'topic_id'    => 0,
-			'forum_id'    => 0,
-			'before'      => '&nbsp;|&nbsp;',
-			'after'       => ''
-		), 'bbppu_get_user_mark_as_read_link' );
-
-		// Validate user and object ID's
-		$user_id  = bbp_get_user_id( $r['user_id'], true, true );
-		$topic_id = bbp_get_topic_id( $r['topic_id'] );
-		$forum_id = bbp_get_forum_id( $r['forum_id'] );
-		if ( empty( $user_id ) || ( empty( $topic_id ) && empty( $forum_id ) ) ) {
-			return false;
-		}
-
-		// No link if you can't edit yourself
-        /*
-		if ( ! current_user_can( 'edit_user', (int) $user_id ) ) {
-			return false;
-		}
-        */
-
-		// Check if viewing a single forum
-		if ( empty( $topic_id ) && ! empty( $forum_id ) ) {
-            
-            $new_activity = true;
-            
-            
-            //this forum or its ancestor have been marked has read
-            if ( $forum_time_marked = self::get_forum_marked_time($forum_id,$user_id) ){
-                $last_active_time = bbp_convert_date(get_post_meta( $forum_id, '_bbp_last_active_time', true )); //get post last activity time
-                $new_activity = ($last_active_time > $forum_time_marked);
-            }
-            
-            if (!$new_activity){ //no new activity since marked
-                //$link_html = __('Marked as read','bbppu') . sprintf('<small> (%s, %s)</small>',date_i18n(get_option( 'date_format' ),$forum_time_marked),date_i18n(get_option( 'time_format' ),$forum_time_marked));
-                $link_html = __('Marked as read','bbppu');
-            }else{
-                $text       = __('Mark all as read','bbppu');
-                $loading_icon = '<i class="bbppu-loading fa fa-circle-o-notch fa-spin fa-fw"></i>';
-            
-                $query_args = array( 
-                    'action' => 'bbpu_mark_read',
-                    'forum_id' => $forum_id 
-                );
-
-                // Create the link based where the user is and if the user is
-                // subscribed already
-                if ( bbp_is_subscriptions() ) {
-                    $permalink = bbp_get_subscriptions_permalink( $user_id );
-                } elseif ( bbp_is_single_forum() || bbp_is_single_reply() ) {
-                    $permalink = bbp_get_forum_permalink( $forum_id );
-                } else {
-                    $permalink = get_permalink();
-                }
-
-                $nonce_action = 'bbppu-mark-as-read_' . $forum_id;
-                $nonce = wp_create_nonce($nonce_action);
-                $url = add_query_arg( $query_args, $permalink );
-                $url = esc_url( wp_nonce_url( $url,$nonce_action) );
-
-                $link_html = sprintf('<a href="%s" data-forum="%d" data-nonce="%s">%s</a>',$url, $forum_id, $nonce, $loading_icon.$text);
-            }
-            
-            $classes  = array('bbppu-mark-as-read');
-            $classes_str = bbppu_get_classes($classes);
-
-			$html = sprintf( '%s<span id="bbppu-mark-as-read-%d"  %s>%s</span>%s', $r['before'], $forum_id, $classes_str, $link_html, $r['after'] );
-
-			// Initial output is wrapped in a span, ajax output is hooked to this
-			if ( !empty( $wrap ) ) {
-				$html = '<span id="bbppu-mark-as-read">' . $html . '</span>';
-			}
-
-		} else {
-
-			// Decide which link to show
-			$is_subscribed = bbp_is_user_subscribed_to_topic( $user_id, $topic_id );
-			if ( ! empty( $is_subscribed ) ) {
-				$text       = $r['unsubscribe'];
-				$query_args = array( 'action' => 'bbp_unsubscribe', 'topic_id' => $topic_id );
-			} else {
-				$text       = $r['subscribe'];
-				$query_args = array( 'action' => 'bbp_subscribe',   'topic_id' => $topic_id );
-			}
-
-			// Create the link based where the user is and if the user is
-			// subscribed already
-			if ( bbp_is_subscriptions() ) {
-				$permalink = bbp_get_subscriptions_permalink( $user_id );
-			} elseif ( bbp_is_single_topic() || bbp_is_single_reply() ) {
-				$permalink = bbp_get_topic_permalink( $topic_id );
-			} else {
-				$permalink = get_permalink();
-			}
-
-			$url  = esc_url( wp_nonce_url( add_query_arg( $query_args, $permalink ), 'toggle-subscription_' . $topic_id ) );
-			$sub  = $is_subscribed ? ' class="is-subscribed"' : '';
-			$html = sprintf( '%s<span id="subscribe-%d"  %s><a href="%s" class="subscription-toggle" data-topic="%d">%s</a></span>%s', $r['before'], $topic_id, $sub, $url, $topic_id, $text, $r['after'] );
-
-			// Initial output is wrapped in a span, ajax output is hooked to this
-			if ( !empty( $wrap ) ) {
-				$html = '<span id="subscription-toggle">' . $html . '</span>';
-			}
-		}
-
-		// Return the link
-		return apply_filters( 'bbppu_get_user_mark_as_read_link', $html, $r, $user_id, $topic_id );
-	}
-    
-    function process_mark_as_read() {
-        
-        if( !isset( $_REQUEST['action'] ) || $_REQUEST['action'] != 'bbpu_mark_read' )return false;
-
-        // Bail if no forum ID is passed
-        if ( empty( $_REQUEST['forum_id'] ) ) {
-            return;
-        }
-
-        // Get required data
-        $user_id  = bbp_get_user_id( 0, true, true );
-        $forum_id = intval( $_REQUEST['forum_id'] );
-
-        // Check for empty forum
-        if ( empty( $forum_id ) ) {
-            bbp_add_error( 'bbppu_forum_id', __( '<strong>ERROR</strong>: No forum was found! Which forum are you marking as read ?', 'bbppu' ) );
-            
-        } else{
-            
-            $nonce_action = 'bbppu-mark-as-read_' . $forum_id;
-            
-            if( !wp_verify_nonce( $_REQUEST['_wpnonce'], $nonce_action ) ){
-                bbp_add_error( 'bbppu_forum_id', __( '<strong>ERROR</strong>: Are you sure you wanted to do that?', 'bbpress' ) );
-            }
-        }
-
-        // Bail if we have errors
-        if ( bbp_has_errors() ) {
-            return;
-        }
-
-        /** No errors *************************************************************/
-
-        $success = self::mark_single_forum_as_read($forum_id);
-
-        // Success!
-        if ( !$success ) {
-             bbp_add_error( 'bbppu_mark_forum_as_read', __( '<strong>ERROR</strong>: There was a problem marking this forum as read!', 'bbppu' ) );
-        }
-    }
-
-    function get_marked_forums($user_id = null){
-        if (!$user_id) $user_id = get_current_user_id();
-        if (!$user_id) return false;
-
-        return get_user_meta($user_id, $this->marked_forums_metaname,true);
-    }
-
-    /*
-     * Marks forum as "read".
-     * Remove marks for descendants if any.
-     */
-        
-	public function mark_single_forum_as_read($forum_id) {
-
-            //validate user
-            $user_id = get_current_user_id();
-            if(!$user_id) return false;
-            
-            $marked_forums = self::get_marked_forums();
-
-            $marked_forums[$forum_id] = current_time('timestamp');
-
-            //remove old marks for descendants if any.
-            if ( $subforums = bbp_forum_get_subforums($forum_id)){
-                foreach ($subforums as $subforum) {
-                    unset($marked_forums[$subforum->ID]);
-                }
-            }
-
-            return update_user_meta($user_id, $this->marked_forums_metaname, $marked_forums );
 	}
 
 	function new_topic_backend($post_id){
@@ -671,348 +458,314 @@ class bbP_Pencil_Unread {
 
 	}
         
-        /*
-         * Check if the forum (or forum ancestor) has been set as read
-         */
-        
-        function get_forum_marked_time($post_id = null, $user_id = null, $include_ancestors = true){
-            
-            $time = null;
-            
-            //validate user
-            if(!$user_id) $user_id = get_current_user_id();
-            $userdata = get_userdata( $user_id );
-            
-            if ( $userdata && ( $usermarks = self::get_marked_forums($user_id) ) ) {
-                
-                $ancestormarks = array();
 
-                //get forum ID
-                $forum_id  = self::get_forum_id_for_post( $post_id );
 
-                $ids_to_check = array($forum_id);
+    /*
+     * Gets the forum ID, no matter what the post type is
+     * Should be replaced when this ticket is fixed :
+     * https://bbpress.trac.wordpress.org/ticket/2769#ticket
+     */
 
-                if ($include_ancestors){  //check whole ancestors tree
-                    $ids_to_check = array_merge( bbp_get_forum_ancestors( $forum_id ), $ids_to_check);
-                }
+    function get_forum_id_for_post($post_id = null){
+        switch ( get_post_type( $post_id ) ) {
 
-                foreach ( $usermarks as $marked_id => $marked_time ){
-                    if ( in_array($marked_id, $ids_to_check) ) $ancestormarks[$marked_id] = $marked_time;
-                }
+            // Forum
+            case bbp_get_forum_post_type() :
+                $forum_id = $post_id;
+                break;
 
-                if ( !empty($ancestormarks) ) {
-                    $time = max($ancestormarks); //get last mark
-                }
+            // Topic
+            case bbp_get_topic_post_type() :
+                $forum_id = bbp_get_topic_forum_id( $post_id );
+                break;
 
+            // Reply
+            case bbp_get_reply_post_type() :
+                $forum_id = bbp_get_reply_forum_id( $post_id );
+                break;
+
+            // Unknown
+            default :
+                $forum_id = $post_id;
+                break;
+        }
+
+        return bbp_get_forum_id($forum_id);
+
+    }
+
+    function has_user_read_all_forum_topics( $forum_id,$user_id=false ){
+
+        if(!$user_id) $user_id = get_current_user_id();
+        if(!$user_id) return true;
+
+        $debug_transient_message = ' (from cache)';
+        $transient_name = sprintf('bbppu_user_%s_read_forum_%s',$user_id,$forum_id);
+        $transient_duration = $this->get_options('count_topics_transient_duration');
+        $transient_duration = null;
+
+        if ( (!$transient_duration) || ( false === ( $has_read = get_transient( $transient_name ) ) ) ) {
+
+            $debug_transient_message = '';
+
+            //count topics - check bbPress function bbp_has_topics()
+
+            $topics_args = array(
+                'post_type' => bbp_get_topic_post_type(),
+                'post_parent' => $forum_id,
+                'posts_per_page' => -1
+
+            );
+
+            if ( $skip_timestamp = $this->get_skip_timestamp($user_id,$forum_id) ){
+                $skip_time = date_i18n( 'Y-m-d H:i:s', $skip_timestamp ); //mysql format
+                $topics_args['meta_query'][] = array(
+                  'key' => '_bbp_last_active_time',
+                  'value' => $skip_time,
+                  'compare' => '>',
+                );
             }
 
-            return $time;
+            // Default view=all statuses
+            $post_statuses = array(
+                bbp_get_public_status_id(),
+                bbp_get_closed_status_id()
+                //bbp_get_spam_status_id(),
+                //bbp_get_trash_status_id()
+            );
+
+            // Add support for private status
+            if ( current_user_can( 'read_private_topics' ) ) {
+                $post_statuses[] = bbp_get_private_status_id();
+            }
+
+            // Join post statuses together
+            $topics_args['post_status'] = implode( ',', $post_statuses );
+
+            $topics_query = new WP_Query( $topics_args );
+
+            $topics_total = $topics_query->found_posts;
+
+            //count read topics
+            $read_topics_args = array(
+                $this->qvar => 'read'
+            );
+
+            $read_topics_args = array_merge($topics_args,$read_topics_args);
+
+            $read_topics_query = new WP_Query($read_topics_args);
+            $read_topics_total = $read_topics_query->found_posts;
+
+            $has_read = (int)($read_topics_total == $topics_total);
+
+            //store for a few seconds
+            set_transient( $transient_name, $has_read, $transient_duration );
 
         }
 
-        /*
-         * Gets the forum ID, no matter what the post type is
-         * Should be replaced when this ticket is fixed :
-         * https://bbpress.trac.wordpress.org/ticket/2769#ticket
-         */
-        
-        function get_forum_id_for_post($post_id = null){
-            switch ( get_post_type( $post_id ) ) {
-                    
-                // Forum
-                case bbp_get_forum_post_type() :
-                    $forum_id = $post_id;
-                    break;
+        $debug_message = sprintf('user#%s has real all topics from forum#%s : %s',$user_id,$forum_id,$has_read).$debug_transient_message;
+        self::debug_log($debug_message);
 
-                // Topic
-                case bbp_get_topic_post_type() :
-                    $forum_id = bbp_get_topic_forum_id( $post_id );
-                    break;
-                    
-                // Reply
-                case bbp_get_reply_post_type() :
-                    $forum_id = bbp_get_reply_forum_id( $post_id );
-                    break;
+        return $has_read;
 
-                // Unknown
-                default :
-                    $forum_id = $post_id;
-                    break;
+    }
+
+    /**
+        get a 'skip timestamp'.
+        below the returned time, ignore the 'unread' state of a post.
+    **/
+
+    function get_skip_timestamp($user_id=false,$post_id = false){
+
+        $skip_timestamps = array();
+
+        //validate user
+        if(!$user_id) $user_id = get_current_user_id();
+        if ( $user_meta = get_userdata( $user_id ) ){
+
+            if ( $this->get_options('test_registration_time') == 'on' ) {
+                $skip_timestamps[] = bbp_convert_date( $user_meta->user_registered ); //user registration time
             }
-            
-            return bbp_get_forum_id($forum_id);
-            
-        }
-    
-        function has_user_read_all_forum_topics( $forum_id,$user_id=false ){
 
-            if(!$user_id) $user_id = get_current_user_id();
-            if(!$user_id) return true;
-            
-            $debug_transient_message = ' (from cache)';
-            $transient_name = sprintf('bbppu_user_%s_read_forum_%s',$user_id,$forum_id);
-            $transient_duration = $this->get_options('count_topics_transient_duration');
-            $transient_duration = null;
-            
-            if ( (!$transient_duration) || ( false === ( $has_read = get_transient( $transient_name ) ) ) ) {
-                
-                $debug_transient_message = '';
-            
-                //count topics - check bbPress function bbp_has_topics()
+            if ( $this->get_options('forums_marks') == 'on' ) {
 
-                $topics_args = array(
-                    'post_type' => bbp_get_topic_post_type(),
-                    'post_parent' => $forum_id,
-                    'posts_per_page' => -1
-
-                );
-
-                if ( $skip_timestamp = $this->get_skip_timestamp($user_id,$forum_id) ){
-                    $skip_time = date_i18n( 'Y-m-d H:i:s', $skip_timestamp ); //mysql format
-                    $topics_args['meta_query'][] = array(
-                      'key' => '_bbp_last_active_time',
-                      'value' => $skip_time,
-                      'compare' => '>',
-                    );
-                }
-
-                // Default view=all statuses
-                $post_statuses = array(
-                    bbp_get_public_status_id(),
-                    bbp_get_closed_status_id()
-                    //bbp_get_spam_status_id(),
-                    //bbp_get_trash_status_id()
-                );
-
-                // Add support for private status
-                if ( current_user_can( 'read_private_topics' ) ) {
-                    $post_statuses[] = bbp_get_private_status_id();
-                }
-
-                // Join post statuses together
-                $topics_args['post_status'] = implode( ',', $post_statuses );
-
-                $topics_query = new WP_Query( $topics_args );
-
-                $topics_total = $topics_query->found_posts;
-
-                //count read topics
-                $read_topics_args = array(
-                    $this->qvar => 'read'
-                );
-
-                $read_topics_args = array_merge($topics_args,$read_topics_args);
-
-                $read_topics_query = new WP_Query($read_topics_args);
-                $read_topics_total = $read_topics_query->found_posts;
-
-                $has_read = (int)($read_topics_total == $topics_total);
-                
-                //store for a few seconds
-                set_transient( $transient_name, $has_read, $transient_duration );
-
-            }
-            
-            $debug_message = sprintf('user#%s has real all topics from forum#%s : %s',$user_id,$forum_id,$has_read).$debug_transient_message;
-            self::debug_log($debug_message);
-            
-            return $has_read;
-
-        }
-    
-        /**
-            get a 'skip timestamp'.
-            below the returned time, ignore the 'unread' state of a post.
-        **/
-    
-        function get_skip_timestamp($user_id=false,$post_id = false){
-            
-            $skip_timestamps = array();
-            
-            //validate user
-            if(!$user_id) $user_id = get_current_user_id();
-            if ( $user_meta = get_userdata( $user_id ) ){
-
-                if ( $this->get_options('test_registration_time') == 'on' ) {
-                    $skip_timestamps[] = bbp_convert_date( $user_meta->user_registered ); //user registration time
-                }
-
-                if ( $post_id && ( $forum_mark = self::get_forum_marked_time($post_id,$user_id) ) ){
+                if ( $post_id && ( $forum_mark = bbP_Pencil_Unread_Forum_Marks::get_forum_marked_time($post_id,$user_id) ) ){
                     $skip_timestamps[] = $forum_mark; //'mark as read'
                 }
-
             }
 
-            return max($skip_timestamps);
-            
         }
-        
-        function has_user_read($post_id,$user_id=false){ 
-            
-            $has_read = false;
-            
-            //validate user
-            if(!$user_id) $user_id = get_current_user_id();
-            if (!$user_meta = get_userdata( $user_id )) return;
 
-            //validate forum
-            $forum_id = self::get_forum_id_for_post($post_id);
-            if ($forum_id === false) return;
-            
-            $post_type = get_post_type($post_id);
-            
-            self::debug_log('user#'.$user_id.' has_user_read '.$post_type.'#'.$post_id.' ? ');
-            
-            //skip timestamp
-            if ( $skip_timestamp = $this->get_skip_timestamp($user_id,$post_id) ){
+        return max($skip_timestamps);
 
-                $last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true )); //get post last activity time
-                $has_read = ($last_active_time <= $skip_timestamp);
-            }
-            
-            if (!$has_read){
-                
-                switch($post_type){
+    }
 
-                    case bbp_get_topic_post_type(): //topic
+    function has_user_read($post_id,$user_id=false){ 
 
-                        $readers = self::get_topic_readers($post_id);
+        $has_read = false;
 
-                        if ( false === $readers ){ //if the plugin was enabled, this should never be false but an array
-                            $has_read = true;
-                            break;
-                        }
-                        //check this topic has been read by the logged user
-                        $has_read = in_array($user_id,(array)$readers);
+        //validate user
+        if(!$user_id) $user_id = get_current_user_id();
+        if (!$user_meta = get_userdata( $user_id )) return;
 
+        //validate forum
+        $forum_id = self::get_forum_id_for_post($post_id);
+        if ($forum_id === false) return;
 
-                    break;
+        $post_type = get_post_type($post_id);
 
-                    case bbp_get_forum_post_type(): //forum
+        self::debug_log('user#'.$user_id.' has_user_read '.$post_type.'#'.$post_id.' ? ');
 
-                        //the forum has neither topics nor replies
-                        if (!bbp_get_forum_post_count($post_id)){
+        //skip timestamp
+        if ( $skip_timestamp = $this->get_skip_timestamp($user_id,$post_id) ){
 
-                            $has_read = true;
-                            break;
+            $last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true )); //get post last activity time
+            $has_read = ($last_active_time <= $skip_timestamp);
+        }
 
-                        }
+        if (!$has_read){
 
-                        $check_forums = array($post_id);
+            switch($post_type){
 
-                        //forum hierarchy
-                        if ( $subforums = bbp_forum_get_subforums($post_id) ){
+                case bbp_get_topic_post_type(): //topic
 
-                            $subforums_count = count($subforums);
-                            $subforums_read = 0;
+                    $readers = self::get_topic_readers($post_id);
 
-                            foreach ($subforums as $subforum) {
-                                $check_forums[] = $subforum->ID;
-                            }
-                        }
-
-                        //look for an unread forum
+                    if ( false === $readers ){ //if the plugin was enabled, this should never be false but an array
                         $has_read = true;
-                        foreach($check_forums as $forum_id){
-                            if ( !$this->has_user_read_all_forum_topics( $forum_id,$user_id ) ) {
-                                $has_read = false;
-                                break;
-                            }
-                        }
-
-                    break;
-
-                }
-                
-            }
+                        break;
+                    }
+                    //check this topic has been read by the logged user
+                    $has_read = in_array($user_id,(array)$readers);
 
 
-            self::debug_log('user#'.$user_id.' has_user_read '.get_post_type($post_id).'#'.$post_id.' ? ***'.(bool)$has_read);
+                break;
 
-            
-            return apply_filters('bbppu_has_user_read',$has_read,$post_id,$user_id);
-            
-        }
-        
-        /**
-         * Get user ids of visitors having read this topic.
-         * Returns false if the meta was never set (plugin not yet installed / disabled)
-         * Or returns IDs of users having read the topic
-         * @param type $topic_id
-         * @return false or array
-         */
-        
-        function get_topic_readers($topic_id){
-            if (!metadata_exists('post',$topic_id,$this->topic_readby_metaname)) return false;
-            $user_ids = get_post_meta($topic_id,$this->topic_readby_metaname);
-            return (array)$user_ids;
-        }
+                case bbp_get_forum_post_type(): //forum
 
-        
-        //TO FIX
-        //filter list forums to add classes to the subforums links.
-        //this is a really nasty hack. 
-        //Should be fixed when bbpress fix this ticket :
-        //https://bbpress.trac.wordpress.org/ticket/2760#ticket
-        
-        function list_forums_class($output,$args){
+                    //the forum has neither topics nor replies
+                    if (!bbp_get_forum_post_count($post_id)){
 
-            if ( !empty( $output ) && ( $sub_forums = bbp_forum_get_subforums( $args['forum_id'] ) ) ){
-                //remove filter to avoid infinite loop
-                remove_filter( 'bbp_list_forums', array(&$this,"list_forums_class"), 10 );
+                        $has_read = true;
+                        break;
 
-                //get sub forums
-
-                $sub_forums_links = array();
-                foreach( (array)$sub_forums as $sub_forum){
-                    $sub_forums_links[$sub_forum->ID] = bbp_get_forum_permalink( $sub_forum->ID );
-                }
-
-                //get forums list nodes
-                $dom = new DOMDocument;
-                $internalErrors = libxml_use_internal_errors(true); // set error level
-                $dom->loadHTML('<?xml encoding="utf-8" ?>' . $output); // use utf8 encoding to avoid problems with foreign languages (http://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly)
-                $finder = new DomXPath($dom);
-                $classname="bbp-forum-link";
-                $forum_link_nodes = $finder->query("//*[contains(@class, '$classname')]");
-
-                foreach ( $forum_link_nodes as $forum_link_node) {
-
-                    $forum_link = $forum_link_node->getAttribute('href');
-                    $forum_id = array_search($forum_link, $sub_forums_links);
-                    if ($forum_id){
-                        $forum_read = $this->has_user_read($forum_id);
-                        $classes = explode(' ',$forum_link_node->getAttribute('class'));
-                        $classes = $this->post_status_class($classes,$forum_id);
-                        $forum_link_node->setAttribute("class",implode(' ',$classes));
                     }
 
+                    $check_forums = array($post_id);
+
+                    //forum hierarchy
+                    if ( $subforums = bbp_forum_get_subforums($post_id) ){
+
+                        $subforums_count = count($subforums);
+                        $subforums_read = 0;
+
+                        foreach ($subforums as $subforum) {
+                            $check_forums[] = $subforum->ID;
+                        }
+                    }
+
+                    //look for an unread forum
+                    $has_read = true;
+                    foreach($check_forums as $forum_id){
+                        if ( !$this->has_user_read_all_forum_topics( $forum_id,$user_id ) ) {
+                            $has_read = false;
+                            break;
+                        }
+                    }
+
+                break;
+
+            }
+
+        }
+
+
+        self::debug_log('user#'.$user_id.' has_user_read '.get_post_type($post_id).'#'.$post_id.' ? ***'.(bool)$has_read);
+
+
+        return apply_filters('bbppu_has_user_read',$has_read,$post_id,$user_id);
+
+    }
+
+    /**
+     * Get user ids of visitors having read this topic.
+     * Returns false if the meta was never set (plugin not yet installed / disabled)
+     * Or returns IDs of users having read the topic
+     * @param type $topic_id
+     * @return false or array
+     */
+
+    function get_topic_readers($topic_id){
+        if (!metadata_exists('post',$topic_id,$this->topic_readby_metaname)) return false;
+        $user_ids = get_post_meta($topic_id,$this->topic_readby_metaname);
+        return (array)$user_ids;
+    }
+
+
+    //TO FIX
+    //filter list forums to add classes to the subforums links.
+    //this is a really nasty hack. 
+    //Should be fixed when bbpress fix this ticket :
+    //https://bbpress.trac.wordpress.org/ticket/2760#ticket
+
+    function list_forums_class($output,$args){
+
+        if ( !empty( $output ) && ( $sub_forums = bbp_forum_get_subforums( $args['forum_id'] ) ) ){
+            //remove filter to avoid infinite loop
+            remove_filter( 'bbp_list_forums', array(&$this,"list_forums_class"), 10 );
+
+            //get sub forums
+
+            $sub_forums_links = array();
+            foreach( (array)$sub_forums as $sub_forum){
+                $sub_forums_links[$sub_forum->ID] = bbp_get_forum_permalink( $sub_forum->ID );
+            }
+
+            //get forums list nodes
+            $dom = new DOMDocument;
+            $internalErrors = libxml_use_internal_errors(true); // set error level
+            $dom->loadHTML('<?xml encoding="utf-8" ?>' . $output); // use utf8 encoding to avoid problems with foreign languages (http://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly)
+            $finder = new DomXPath($dom);
+            $classname="bbp-forum-link";
+            $forum_link_nodes = $finder->query("//*[contains(@class, '$classname')]");
+
+            foreach ( $forum_link_nodes as $forum_link_node) {
+
+                $forum_link = $forum_link_node->getAttribute('href');
+                $forum_id = array_search($forum_link, $sub_forums_links);
+                if ($forum_id){
+                    $forum_read = $this->has_user_read($forum_id);
+                    $classes = explode(' ',$forum_link_node->getAttribute('class'));
+                    $classes = $this->post_status_class($classes,$forum_id);
+                    $forum_link_node->setAttribute("class",implode(' ',$classes));
                 }
 
-                //re-add filter
-                add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
-                
-                $output = $dom->saveHTML();
-                
-                libxml_use_internal_errors($internalErrors); // restore error level
             }
 
-            return $output;
+            //re-add filter
+            add_filter( 'bbp_list_forums', array(&$this,"list_forums_class"),10,2);
 
+            $output = $dom->saveHTML();
+
+            libxml_use_internal_errors($internalErrors); // restore error level
         }
-        
-        function debug_log($message) {
 
-            if (WP_DEBUG_LOG !== true) return false;
+        return $output;
 
-            $prefix = '[bbppu] : ';
-            
-            if (is_array($message) || is_object($message)) {
-                error_log($prefix.print_r($message, true));
-            } else {
-                error_log($prefix.$message);
-            }
+    }
+
+    function debug_log($message) {
+
+        if (WP_DEBUG_LOG !== true) return false;
+
+        $prefix = '[bbppu] : ';
+
+        if (is_array($message) || is_object($message)) {
+            error_log($prefix.print_r($message, true));
+        } else {
+            error_log($prefix.$message);
         }
+    }
 
     
     function get_options($keys = null){
