@@ -53,10 +53,16 @@ class bbP_Pencil_Unread_Bookmarks {
         return $url;
     }
     
-    function bookmark_embed_link(){
+    function bookmark_embed_link($post_id = false){
+        
         global $post;
-        $bookmark_id = $this->bookmark_get($post->ID);
-        $last_chilren_id = bbp_get_topic_last_reply_id( $post->ID );
+        if (!$post_id) $post_id = $post->ID;
+        
+        if ( bbppu()->has_user_read($post_id) ) return false;
+        
+        
+        $bookmark_id = $this->bookmark_get($post_id);
+        $last_chilren_id = bbp_get_topic_last_reply_id( $post_id );
         
         // Abord if the user has not read any posts in the topic
         if (!$bookmark_id) return;
