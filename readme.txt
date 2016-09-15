@@ -86,7 +86,8 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 
 == Screenshots ==
 
-1. Style of the read / non-read forums
+1. Style of the read / non-read forums.  The flag icon is a link to reach the last read reply.
+2. Options page
 
 == Localization ==
 

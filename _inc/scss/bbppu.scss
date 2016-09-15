@@ -11,8 +11,11 @@ body{
     }
     
     .bbppu-bookmark{
-        .dashicons{
-            font-size: 1.5em;
+        .bbppu-bookmark-icon{
+            text-decoration: none;
+            &.dashicons{
+                font-size: 1.5em;
+            }
         }
     }
 

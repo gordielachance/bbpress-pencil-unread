@@ -6,48 +6,52 @@ body a.bbppu-hentry, body ul.bbppu-hentry > li:first-child {
   transition: border 500ms ease-out;
 }
 /* line 14, ../scss/bbppu.scss */
-body .bbppu-bookmark .dashicons {
+body .bbppu-bookmark .bbppu-bookmark-icon {
+  text-decoration: none;
+}
+/* line 16, ../scss/bbppu.scss */
+body .bbppu-bookmark .bbppu-bookmark-icon.dashicons {
   font-size: 1.5em;
 }
-/* line 19, ../scss/bbppu.scss */
+/* line 22, ../scss/bbppu.scss */
 body .bbppu-mark-as-read {
   margin-bottom: 15px;
   text-align: right;
 }
-/* line 23, ../scss/bbppu.scss */
+/* line 26, ../scss/bbppu.scss */
 body .bbppu-mark-as-read a .bbppu-loading {
   filter: progid:DXImageTransform.Microsoft.Alpha(Opacity=0);
   opacity: 0;
 }
-/* line 27, ../scss/bbppu.scss */
+/* line 30, ../scss/bbppu.scss */
 body .bbppu-mark-as-read a.loading .bbppu-loading {
   filter: progid:DXImageTransform.Microsoft.Alpha(enabled=false);
   opacity: 1;
 }
-/* line 34, ../scss/bbppu.scss */
+/* line 37, ../scss/bbppu.scss */
 body:not(.rtl) a.bbppu-hentry, body:not(.rtl) ul.bbppu-hentry > li:first-child {
   padding-left: 5px;
 }
-/* line 38, ../scss/bbppu.scss */
+/* line 41, ../scss/bbppu.scss */
 body:not(.rtl) a.bbppu-hentry.bbppu-read,
 body:not(.rtl) ul.bbppu-hentry.bbppu-read > li:first-child {
   border-left: 5px solid #EAEAEA;
 }
-/* line 43, ../scss/bbppu.scss */
+/* line 46, ../scss/bbppu.scss */
 body:not(.rtl) a.bbppu-hentry.bbppu-unread,
 body:not(.rtl) ul.bbppu-hentry.bbppu-unread > li:first-child {
   border-left: 5px solid #21759B;
 }
-/* line 50, ../scss/bbppu.scss */
+/* line 53, ../scss/bbppu.scss */
 body.rtl a.bbppu-hentry, body.rtl ul.bbppu-hentry > li:first-child {
   padding-right: 5px;
 }
-/* line 54, ../scss/bbppu.scss */
+/* line 57, ../scss/bbppu.scss */
 body.rtl a.bbppu-hentry.bbppu-read,
 body.rtl ul.bbppu-hentry.bbppu-read > li:first-child {
   border-right: 5px solid #EAEAEA;
 }
-/* line 59, ../scss/bbppu.scss */
+/* line 62, ../scss/bbppu.scss */
 body.rtl a.bbppu-hentry.bbppu-unread,
 body.rtl ul.bbppu-hentry.bbppu-unread > li:first-child {
   border-right: 5px solid #21759B;
