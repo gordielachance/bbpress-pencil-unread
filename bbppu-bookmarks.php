@@ -62,7 +62,7 @@ class bbP_Pencil_Unread_Bookmarks {
         if (!$bookmark_id) return;
         
         // Skip if user as read the last post
-        //if ($bookmark_id == $last_chilren_id) return;
+        if ($bookmark_id == $last_chilren_id) return;
         
         $bookmark_url = $this->bookmark_get_url($bookmark_id);
         $title = __('Go to bookmark','bbppu');
