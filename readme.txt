@@ -95,6 +95,9 @@ If it hasn't been done already, you can translate the plugin and send me the tra
 
 == Changelog ==
 
+= 1.2.8 =
+* Minor
+
 = 1.2.7 =
 * Added the 'bookmark' option, which adds (by default) a link after topics titles to go directly to the last read reply of that topic.
 * Forums marks is now an option
