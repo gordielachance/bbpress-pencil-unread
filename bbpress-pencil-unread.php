@@ -3,7 +3,7 @@
 Plugin Name: bbPress Pencil Unread
 Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
 Description: Display which bbPress forums/topics have already been read by the user.
-Version: 1.2.9
+Version: 1.3.0
 Author: G.Breant
 Author URI: https://profiles.wordpress.org/grosbouff/
 Text Domain: bbppu
@@ -16,7 +16,7 @@ class bbP_Pencil_Unread {
         /**
 	 * @public string plugin version
 	 */
-	public $version = '1.2.9';
+	public $version = '1.3.0';
         
 	/**
 	 * @public string plugin DB version
@@ -506,6 +506,8 @@ class bbP_Pencil_Unread {
         $time_start = microtime( true ); //for debug
         $debug_transient_message = ' (from cache)';
         $topics_total = '-';
+        
+        //TO FIX TO CHECK use wp_cache_set instead of transients ?
         $transient_name = sprintf('bbppu_has_read_%s_user_%s',$forum_id,$user_id);
         $transient_duration = $this->get_options('has_read_cache_time');
 
@@ -521,7 +523,12 @@ class bbP_Pencil_Unread {
             $topics_args = array(
                 'post_type'         => bbp_get_topic_post_type(),
                 'post_parent'       => $forum_id,
-                'fields'            => 'ids'
+                'fields'            => 'ids',
+                'posts_per_page'    => -1,
+                //optimize query :
+                'no_found_rows' => true, //https://wpartisan.me/tutorials/wordpress-database-queries-speed-sql_calc_found_rows
+                'update_post_term_cache' => false, // grabs post terms
+                'update_post_meta_cache' => true // grabs post meta (here needed)
             );
 
             if ( $skip_timestamp = $this->get_skip_timestamp($user_id,$forum_id) ){
@@ -565,9 +572,9 @@ class bbP_Pencil_Unread {
             $read_topics_query = new WP_Query($read_topics_args);
 
             //compare counts
-            if ( $topics_total = $topics_query->found_posts ){
+            if ( $topics_total = count($topics_query->posts) ){
 
-                $read_topics_total = $read_topics_query->found_posts;
+                $read_topics_total = count($read_topics_query->posts);
 
                 self::debug_log( sprintf('topics read : %s/%s',$read_topics_total,$topics_total) );
 

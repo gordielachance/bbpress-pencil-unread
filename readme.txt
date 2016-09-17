@@ -99,6 +99,11 @@ If it hasn't been done already, you can translate the plugin and send me the tra
 
 == Changelog ==
 
+= 1.3.0 =
+Try to optimize queries that count forum topics :
+* 'no_found_rows' => true (see https://wpartisan.me/tutorials/wordpress-database-queries-speed-sql_calc_found_rows); so use count() instead of found->posts
+* 'update_post_term_cache' => false
+
 = 1.2.9 =
 * when comparing the topics read, only fetch IDs instead of full post
 * better debug.log report
