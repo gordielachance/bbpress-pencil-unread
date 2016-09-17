@@ -100,7 +100,7 @@ If it hasn't been done already, you can translate the plugin and send me the tra
 == Changelog ==
 
 = 1.3.0 =
-Try to optimize queries that count forum topics :
+* Try to optimize queries that count forum topics in has_user_read_all_forum_topics():
 * 'no_found_rows' => true (see https://wpartisan.me/tutorials/wordpress-database-queries-speed-sql_calc_found_rows); so use count() instead of found->posts
 * 'update_post_term_cache' => false
 
