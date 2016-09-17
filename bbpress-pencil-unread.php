@@ -404,9 +404,8 @@ class bbP_Pencil_Unread {
             if ( !current_user_can( $post_obj->cap->edit_post, $post_id ) ) return $post_id;
         
             $reply_id = bbp_get_reply_id($post_id);
-                    
-            if (isset($_POST['post_parent'])) $topic_id = bbp_get_topic_id($_POST['post_parent']);
-            if (isset($_POST['bbp_forum_id'])) $forum_id = bbp_get_forum_id($_POST['bbp_forum_id']);
+            $topic_id = (isset($_POST['post_parent'])) ? bbp_get_topic_id($_POST['post_parent']) : null;
+            $forum_id =  (isset($_POST['bbp_forum_id']))  ? bbp_get_forum_id($_POST['bbp_forum_id']) : null;
         
             $this->new_reply($reply_id,$topic_id,$forum_id);
 	}
@@ -523,9 +522,9 @@ class bbP_Pencil_Unread {
             $topics_args = array(
                 'post_type'         => bbp_get_topic_post_type(),
                 'post_parent'       => $forum_id,
-                'fields'            => 'ids',
                 'posts_per_page'    => -1,
                 //optimize query :
+                'fields'            => 'ids',
                 'no_found_rows' => true, //https://wpartisan.me/tutorials/wordpress-database-queries-speed-sql_calc_found_rows
                 'update_post_term_cache' => false, // grabs post terms
                 'update_post_meta_cache' => true // grabs post meta (here needed)
@@ -699,9 +698,6 @@ class bbP_Pencil_Unread {
                         }
 
                     }
-
-                    self::debug_log('check in forums '.implode(',',$check_forums));
-
 
                     //look for an unread forum
                     $has_read = true;
