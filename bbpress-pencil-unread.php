@@ -498,6 +498,8 @@ class bbP_Pencil_Unread {
     }
 
     function has_user_read_all_forum_topics( $forum_id,$user_id=false ){
+        
+        //check : http://wordpress.stackexchange.com/questions/239603/how-to-speed-up-a-complex-wp-query
 
         if(!$user_id) $user_id = get_current_user_id();
         if(!$user_id) return true;
@@ -532,6 +534,8 @@ class bbP_Pencil_Unread {
 
             if ( $skip_timestamp = $this->get_skip_timestamp($user_id,$forum_id) ){
                 $skip_time = date_i18n( 'Y-m-d H:i:s', $skip_timestamp ); //mysql format
+                //TO FIX should we query the 'post_date' field instead of this; which slows down the query ?  
+                //We must be sure it has the same value than '_bbp_last_active_time' postmeta.
                 $topics_args['meta_query'][] = array(
                   'key' => '_bbp_last_active_time',
                   'value' => $skip_time,
