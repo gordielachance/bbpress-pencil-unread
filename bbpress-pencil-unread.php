@@ -3,7 +3,7 @@
 Plugin Name: bbPress Pencil Unread
 Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
 Description: Display which bbPress forums/topics have already been read by the user.
-Version: 1.2.8
+Version: 1.2.9
 Author: G.Breant
 Author URI: https://profiles.wordpress.org/grosbouff/
 Text Domain: bbppu
@@ -16,12 +16,12 @@ class bbP_Pencil_Unread {
         /**
 	 * @public string plugin version
 	 */
-	public $version = '1.2.8';
+	public $version = '1.2.9';
         
 	/**
 	 * @public string plugin DB version
 	 */
-	public $db_version = '107';
+	public $db_version = '108';
 	
 	/** Paths *****************************************************************/
 	
@@ -50,6 +50,8 @@ class bbP_Pencil_Unread {
     public $qvar = 'bbppu';
     
     public $donate_link = 'http://bit.ly/gbreant';
+    
+    public $query_time = null;
 
 	/**
 	 * @var The one true Instance
@@ -89,7 +91,7 @@ class bbP_Pencil_Unread {
             'forums_marks'                          => 'on',
             'test_registration_time'                => 'on', //all items dated befoe user's first visit
             'bookmarks'                             => 'on',
-            'count_topics_transient_duration'       => 5,
+            'has_read_cache_time'                   => 5,
             
         );
         
@@ -131,6 +133,8 @@ class bbP_Pencil_Unread {
             add_action('admin_enqueue_scripts', array($this, 'scripts_styles_admin'));
         
             add_filter( 'plugin_action_links_' . $this->basename, array($this, 'plugin_bottom_links')); //bottom links
+        
+            add_action( 'bbp_footer', array($this, 'debug_msg_total_queries_time'));
             
 	}
     
@@ -498,22 +502,26 @@ class bbP_Pencil_Unread {
 
         if(!$user_id) $user_id = get_current_user_id();
         if(!$user_id) return true;
-
+        
+        $time_start = microtime( true ); //for debug
         $debug_transient_message = ' (from cache)';
-        $transient_name = sprintf('bbppu_user_%s_read_forum_%s',$user_id,$forum_id);
-        $transient_duration = $this->get_options('count_topics_transient_duration');
+        $topics_total = '-';
+        $transient_name = sprintf('bbppu_has_read_%s_user_%s',$forum_id,$user_id);
+        $transient_duration = $this->get_options('has_read_cache_time');
 
         if ( (!$transient_duration) || ( false === ( $has_read = get_transient( $transient_name ) ) ) ) {
 
+            $time_start = microtime( true ); //for debug
             $debug_transient_message = '';
 
             //count topics - check bbPress function bbp_has_topics()
 
-            $topics_args = array(
-                'post_type' => bbp_get_topic_post_type(),
-                'post_parent' => $forum_id,
-                'posts_per_page' => -1
+            $posts_per_page = get_option('posts_per_page');
 
+            $topics_args = array(
+                'post_type'         => bbp_get_topic_post_type(),
+                'post_parent'       => $forum_id,
+                'fields'            => 'ids'
             );
 
             if ( $skip_timestamp = $this->get_skip_timestamp($user_id,$forum_id) ){
@@ -541,29 +549,42 @@ class bbP_Pencil_Unread {
             // Join post statuses together
             $topics_args['post_status'] = implode( ',', $post_statuses );
 
-            $topics_query = new WP_Query( $topics_args );
-
-            $topics_total = $topics_query->found_posts;
-
             //count read topics
             $read_topics_args = array(
                 $this->qvar => 'read'
             );
 
+            $has_read = true; //assuming we've read the forum 
+
+
+
+            //make queries
             $read_topics_args = array_merge($topics_args,$read_topics_args);
-
+            $topics_query = new WP_Query( $topics_args );
+            //self::debug_log( $topics_args );
             $read_topics_query = new WP_Query($read_topics_args);
-            $read_topics_total = $read_topics_query->found_posts;
 
-            $has_read = (int)($read_topics_total == $topics_total);
+            //compare counts
+            if ( $topics_total = $topics_query->found_posts ){
 
+                $read_topics_total = $read_topics_query->found_posts;
+
+                self::debug_log( sprintf('topics read : %s/%s',$read_topics_total,$topics_total) );
+
+                //has read ?
+                if ($read_topics_total != $topics_total) {
+                    $has_read = false;
+                }
+
+            }
+            
             //store for a few seconds
             set_transient( $transient_name, $has_read, $transient_duration );
-
+            
         }
-
-        $debug_message = sprintf('user#%s has real all topics from forum#%s : %s',$user_id,$forum_id,$has_read).$debug_transient_message;
-        self::debug_log($debug_message);
+        
+        $query_time = number_format( microtime( true ) - $time_start, 10 );
+        self::debug_log(sprintf(' - user#%s has real all %s topics from forum#%s : %s - query time : %s',$user_id,$topics_total,$forum_id,$has_read,$query_time).$debug_transient_message);
 
         return $has_read;
 
@@ -602,6 +623,7 @@ class bbP_Pencil_Unread {
     function has_user_read($post_id,$user_id=false){ 
 
         $has_read = false;
+        $time_start = microtime( true ); //for debug
 
         //validate user
         if(!$user_id) $user_id = get_current_user_id();
@@ -612,14 +634,17 @@ class bbP_Pencil_Unread {
         if ($forum_id === false) return;
 
         $post_type = get_post_type($post_id);
-
-        self::debug_log('user#'.$user_id.' has_user_read '.$post_type.'#'.$post_id.' ? ');
+        
+        self::debug_log( sprintf('CHECK %s %s (has_user_read) for user#%s',get_post_type($post_id),$post_id,$user_id) );
 
         //skip timestamp
         if ( $skip_timestamp = $this->get_skip_timestamp($user_id,$post_id) ){
 
             $last_active_time = bbp_convert_date(get_post_meta( $post_id, '_bbp_last_active_time', true )); //get post last activity time
-            $has_read = ($last_active_time <= $skip_timestamp);
+            $has_read = ($skip_timestamp > $last_active_time);
+
+            if ($has_read) self::debug_log( sprintf('skipped : skip_timestamp > last_active_time - %s > %s',$skip_timestamp,$last_active_time) );
+
         }
 
         if (!$has_read){
@@ -637,6 +662,7 @@ class bbP_Pencil_Unread {
                     //check this topic has been read by the logged user
                     $has_read = in_array($user_id,(array)$readers);
 
+                    self::debug_log("user belongs to topic's readers");
 
                 break;
 
@@ -646,6 +672,9 @@ class bbP_Pencil_Unread {
                     if (!bbp_get_forum_post_count($post_id)){
 
                         $has_read = true;
+
+                        self::debug_log('has neither topics nor replies');
+
                         break;
 
                     }
@@ -661,7 +690,11 @@ class bbP_Pencil_Unread {
                         foreach ($subforums as $subforum) {
                             $check_forums[] = $subforum->ID;
                         }
+
                     }
+
+                    self::debug_log('check in forums '.implode(',',$check_forums));
+
 
                     //look for an unread forum
                     $has_read = true;
@@ -678,8 +711,10 @@ class bbP_Pencil_Unread {
 
         }
 
-
-        self::debug_log('user#'.$user_id.' has_user_read '.get_post_type($post_id).'#'.$post_id.' ? ***'.(bool)$has_read);
+        self::debug_log('HAS READ: '.(int)$has_read);
+        self::debug_log('-');
+        $query_time = number_format( microtime( true ) - $time_start, 10 );
+        $this->query_time += $query_time;
 
 
         return apply_filters('bbppu_has_user_read',$has_read,$post_id,$user_id);
@@ -764,6 +799,12 @@ class bbP_Pencil_Unread {
         } else {
             error_log($prefix.$message);
         }
+    }
+    
+    function debug_msg_total_queries_time(){
+        self::debug_log("---");
+        self::debug_log("TOTAL QUERY TIME:".$this->query_time);
+        self::debug_log("---");
     }
 
     

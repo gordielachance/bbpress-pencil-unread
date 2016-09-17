@@ -82,6 +82,10 @@ $last_unread_topics_query = new WP_Query( $last_unread_topics_query_args );
 
 Have a look at the file /bbppu-template.php, which contains functions you could need.
 
+= How can I see the plugin's log ? =
+
+The plugin will generate various notices and informations in the debug.log file, if [debugging is enabled](https://codex.wordpress.org/Debugging_in_WordPress).
+
 
 
 == Screenshots ==
@@ -95,8 +99,9 @@ If it hasn't been done already, you can translate the plugin and send me the tra
 
 == Changelog ==
 
-= 1.2.8 =
-* Minor
+= 1.2.9 =
+* when comparing the topics read, only fetch IDs instead of full post
+* better debug.log report
 
 = 1.2.7 =
 * Added the 'bookmark' option, which adds (by default) a link after topics titles to go directly to the last read reply of that topic.
