@@ -594,7 +594,7 @@ class bbP_Pencil_Unread {
         }
         
         $query_time = number_format( microtime( true ) - $time_start, 10 );
-        self::debug_log(sprintf(' - user#%s has real all %s topics from forum#%s : %s - query time : %s',$user_id,$topics_total,$forum_id,$has_read,$query_time).$debug_transient_message);
+        self::debug_log(sprintf(' - user#%s has read all %s topics from forum#%s : %s - query time : %s',$user_id,$topics_total,$forum_id,$has_read,$query_time).$debug_transient_message);
 
         return $has_read;
 
