@@ -3,11 +3,11 @@
 Plugin Name: bbPress Pencil Unread
 Plugin URI: http://wordpress.org/extend/plugins/bbpress-pencil-unread
 Description: Display which bbPress forums/topics have already been read by the user.
-Version: 1.3.1
 Author: G.Breant
 Author URI: https://profiles.wordpress.org/grosbouff/
 Text Domain: bbppu
-Domain Path: /languages
+Version: 1.3.2
+
 */
 
 class bbP_Pencil_Unread {
@@ -16,7 +16,7 @@ class bbP_Pencil_Unread {
         /**
 	 * @public string plugin version
 	 */
-	public $version = '1.3.1';
+	public $version = '1.3.2';
         
 	/**
 	 * @public string plugin DB version
@@ -722,7 +722,6 @@ class bbP_Pencil_Unread {
         self::debug_log('-');
         $query_time = number_format( microtime( true ) - $time_start, 10 );
         $this->query_time += $query_time;
-
 
         return apply_filters('bbppu_has_user_read',$has_read,$post_id,$user_id);
 

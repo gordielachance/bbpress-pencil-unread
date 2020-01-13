@@ -1,9 +1,10 @@
 === bbPress Pencil Unread ===
 Contributors: grosbouff
-Tags: bbPress,unread,topics,forums,Buddypress
+Tags: bbPress,unread,mark as read,new,topics,forums,Buddypress
 Donate link: http://bit.ly/gbreant
-Requires at least: Wordpress 3, bbPress 2
-Tested up to: Wordpress 5.1.1, bbPress 2.5.14
+Requires at least: 3
+Tested up to: 5.3.2
+Requires PHP: 5.6
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -21,24 +22,28 @@ Compatible with BuddyPress Groups Forums feature.
 *   *Bookmarks* : (optional) adds a link after the topics titles; that goes directly to the last read reply of a topic.
 *   Option to set as read topics that where created before the user's registration
 
+= Demo =
+
+We don't have a running demo anymore.  If you use this plugin and would like to be featured here, please [contact us](https://github.com/gordielachance/bbpress-pencil-unread/issues/5)
+
+= Donate =
+
+Donations are needed to help maintain this plugin.  Please consider [supporting us](http://bit.ly/gbreant).
+This would be very appreciated — Thanks !
+
 = Contributors =
 
-[Contributors are listed here](https://github.com/gordielachance/bbpress-pencil-unread/contributors)
+Contributors [are listed here](https://github.com/gordielachance/bbpress-pencil-unread/contributors)
 
+= Bugs/Development =
 
-= Demo =
-bbPress Pencil Unread is installed on [our forums](http://sandbox.pencil2d.org/forums).
-
-= Notes =
-
-For feature request and bug reports, [please use the forums](http://wordpress.org/support/plugin/bbpress-pencil-unread#postform).
+For feature request and bug reports, please use the [Github Issues Tracker](https://github.com/gordielachance/bbpress-pencil-unread/issues).
 
 If you are a plugin developer, [we would like to hear from you](https://github.com/gordielachance/bbpress-pencil-unread). Any contribution would be very welcome.
 
-
 == Installation ==
 
-Extract the zip file and just drop the contents in the wp-content/plugins/ directory of your WordPress installation and then activate the Plugin from Plugins page.
+1. Upload the plugin to your blog and Activate it.
 
 == Frequently Asked Questions ==
 
@@ -83,8 +88,6 @@ Have a look at the file /bbppu-template.php, which contains functions you could 
 = How can I see the plugin's log ? =
 
 The plugin will generate various notices and informations in the debug.log file, if [debugging is enabled](https://codex.wordpress.org/Debugging_in_WordPress).
-
-
 
 == Screenshots ==
 
